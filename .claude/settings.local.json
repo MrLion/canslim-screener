@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest canslim-screener --typescript --tailwind --eslint --app --src-dir --no-import-alias --use-npm)",
+      "Bash(shopt -s dotglob)",
+      "Bash(mv canslim-screener/* canslim-screener/.* .)",
+      "Bash(rmdir canslim-screener:*)",
+      "Bash(npm install:*)",
+      "Bash(npx next:*)",
+      "Bash(node -e \"const yf = require\\(''yahoo-finance2''\\).default; console.log\\(typeof yf.quote\\); console.log\\(Object.keys\\(yf\\)\\);\")",
+      "Bash(node -e \"const yf = require\\(''yahoo-finance2''\\).default; yf.quote\\(''AAPL''\\).then\\(r => console.log\\(JSON.stringify\\(Object.keys\\(r\\)\\)\\)\\)\")",
+      "Bash(node -e \":*)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

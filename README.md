@@ -1,36 +1,86 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CAN SLIM Screener
+
+A web app that screens 500+ stocks against William O'Neil's CAN SLIM investment methodology and ranks them by composite score. Results stream in live as they're computed.
+
+## CAN SLIM Criteria
+
+| Letter | Criterion | What It Measures | Pass Threshold |
+|--------|-----------|------------------|----------------|
+| **C** | Current Earnings | Quarterly EPS growth YoY | ≥ 25% |
+| **A** | Annual Earnings | Avg annual EPS growth (3yr) | ≥ 25% |
+| **N** | New Highs | Proximity to 52-week high | Within 5% |
+| **S** | Supply/Demand | Volume vs 50-day average | Above average |
+| **L** | Leader | Relative strength vs S&P 500 | RS ≥ 70 |
+| **I** | Institutional | Institutional ownership | ≥ 20% |
+| **M** | Market Direction | S&P 500 trend (50/200-day MA) | Uptrend |
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and click **Start Scan**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- First scan takes ~2-3 minutes (fetching data for 500+ stocks from Yahoo Finance)
+- Results stream in progressively — you can browse while scanning continues
+- Subsequent scans are faster thanks to 4-hour in-memory caching
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Features
 
-## Learn More
+- **Streaming results** — stocks appear ranked as they're scored via Server-Sent Events
+- **Progress bar** — real-time scan progress (e.g., 300/517 scanned)
+- **Market direction banner** — shows current S&P 500 trend status (M criterion)
+- **Sortable columns** — sort by composite score or any individual CAN SLIM criterion
+- **Filter** — search by ticker symbol or company name
+- **Expandable rows** — click any stock to see detailed score breakdowns with visual score bars
 
-To learn more about Next.js, take a look at the following resources:
+## Tech Stack
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Next.js 16** (App Router) + TypeScript
+- **Tailwind CSS** for styling
+- **yahoo-finance2** (v3) for free stock data (no API key required)
+- **node-cache** for in-memory caching
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+src/
+├── app/
+│   ├── page.tsx                    # Main screener UI (SSE consumer)
+│   ├── api/screen/route.ts         # Streaming API (SSE producer)
+│   └── api/stock/[ticker]/route.ts # Individual stock detail API
+├── lib/
+│   ├── canslim.ts                  # CAN SLIM scoring engine
+│   ├── yahoo.ts                    # Yahoo Finance data layer + caching
+│   └── tickers.ts                  # S&P 500 + NASDAQ 100 ticker lists
+└── components/
+    ├── StockTable.tsx              # Sortable/filterable results table
+    ├── ScoreBar.tsx                # Visual score indicator
+    └── MarketStatus.tsx            # Market direction banner
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## How Scoring Works
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Each stock is evaluated against 6 criteria (C, A, N, S, L, I) plus the market direction (M). Each criterion produces a score from 0-100 and a pass/fail result. The composite score is a weighted average:
+
+| Criterion | Weight |
+|-----------|--------|
+| C (Current Earnings) | 20% |
+| A (Annual Growth) | 20% |
+| L (Leader/RS) | 20% |
+| N (New Highs) | 15% |
+| S (Supply/Demand) | 10% |
+| I (Institutional) | 10% |
+| M (Market Direction) | 5% |
+
+## Data Source
+
+All data comes from Yahoo Finance via the `yahoo-finance2` npm package. No API key is required. The stock universe includes S&P 500 constituents plus select NASDAQ 100 names (~517 tickers total).
+
+## Notes
+
+- The **C** (Current Earnings) criterion may show "N/A" for some stocks due to limited quarterly earnings data availability from Yahoo Finance
+- Data is cached in-memory for 4 hours to avoid excessive API calls
+- This tool is for educational/research purposes and does not constitute investment advice
