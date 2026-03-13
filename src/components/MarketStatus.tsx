@@ -13,7 +13,7 @@ export default function MarketStatus({ market }: { market: MarketDirection | nul
   const colors = {
     uptrend: "bg-green-900/30 border-green-500/50 text-green-300",
     downtrend: "bg-red-900/30 border-red-500/50 text-red-300",
-    neutral: "bg-yellow-900/30 border-yellow-500/50 text-yellow-300",
+    neutral: "bg-orange-900/30 border-orange-500/50 text-orange-300",
   };
 
   const icons = {
@@ -24,8 +24,8 @@ export default function MarketStatus({ market }: { market: MarketDirection | nul
 
   const labels = {
     uptrend: "CONFIRMED UPTREND",
-    downtrend: "MARKET IN CORRECTION",
-    neutral: "UPTREND UNDER PRESSURE",
+    downtrend: "CONFIRMED DOWNTREND",
+    neutral: "UPTREND UNDER PRESSURE — PROCEED WITH CAUTION",
   };
 
   return (
@@ -46,10 +46,10 @@ export default function MarketStatus({ market }: { market: MarketDirection | nul
         </div>
         <div className="text-xs opacity-60">
           {market.trend === "uptrend"
-            ? "Favorable for new buys"
+            ? "Above 50-day MA — favorable for new buys"
             : market.trend === "downtrend"
-            ? "Avoid new buys"
-            : "Proceed with caution"}
+            ? "Below 50 & 200-day MA — avoid new buys"
+            : "Below 50-day MA, above 200-day MA — proceed with caution"}
         </div>
       </div>
     </div>

@@ -212,12 +212,15 @@ export async function getMarketDirection(): Promise<MarketDirection> {
     prices.slice(-50).reduce((sum, p) => sum + p.close, 0) / 50;
 
   let trend: "uptrend" | "downtrend" | "neutral";
-  if (latest > ma200 && ma50 > ma200) {
+  if (latest > ma50) {
+    // Above 50-day MA → confirmed uptrend (green)
     trend = "uptrend";
-  } else if (latest < ma200 && ma50 < ma200) {
-    trend = "downtrend";
-  } else {
+  } else if (latest < ma50 && latest > ma200) {
+    // Below 50-day MA but above 200-day MA → caution (orange)
     trend = "neutral";
+  } else {
+    // Below both 50-day and 200-day MA → confirmed downtrend (red)
+    trend = "downtrend";
   }
 
   return { trend, sp500Price: latest, ma200, ma50 };
