@@ -14,11 +14,11 @@ export interface IBDSector {
 
 // All 197 IBD industry groups organized by sector
 export const IBD_GROUPS: IBDGroup[] = [
-  { symbol: "G3722", name: "Aerospace/Defense", tickers: [] },
-  { symbol: "G1000", name: "Agricultural Operations", tickers: [] },
-  { symbol: "G2300", name: "Apparel-Clothing Mfg", tickers: [] },
-  { symbol: "G3141", name: "Apparel-Shoes & Rel Mfg", tickers: [] },
-  { symbol: "G3711", name: "Auto Manufacturers", tickers: [] },
+  { symbol: "G3722", name: "Aerospace/Defense", tickers: ["ISSC", "KTOS", "WWD", "HWM", "MOGB", "CRS", "ATI", "ESP", "MOGA", "ESLT", "AIR", "CW", "HII", "RYCEY", "GE", "KRMN", "BAESY", "TXT", "ATRO", "ATROB", "DRS", "RTX", "DCO", "TDY", "OSIS", "MRCY", "POWW", "UMAC", "SIF", "TATT", "FTAI", "CODA", "VVX", "MPTI", "HXL", "GD", "AVAV", "LHX", "ONDS", "NOC", "OPXS", "LMT", "SATL", "RKLB", "HEI", "BA", "CAE", "HEIA", "RNMBY", "CVU", "LUNR", "EADSY", "NPK", "TDG", "KRKNF", "DPRO", "BAER", "SARO", "LOAR", "DRSHF", "EMBJ", "RDW", "HOVR", "SPIR", "PRZO", "SPAI", "SOAR", "AIRO", "VWAV", "AIRI", "ASLE", "DFSC", "SPCE", "MNTS", "EVTL", "ACHR", "EH", "JOBY", "FJET", "MDA", "FLYX", "AERG", "VOYG", "YSS", "FLY", "EVEX", "BETA"] },
+  { symbol: "G1000", name: "Agricultural Operations", tickers: ["VFF", "CTVA", "ALCO", "BG", "LND", "DAR", "AGRO", "CBUS", "AVO", "ABVE", "AGRZ", "AVX", "PFAI", "EDBL", "RYM", "LOCL", "RKDA", "SEED", "EVGN", "LMNR", "UGRO", "BNC", "BIOX"] },
+  { symbol: "G2300", name: "Apparel-Clothing Mfg", tickers: ["TPR", "FIGS", "RL", "NCI", "ZGN", "GIL", "KTB", "VSCO", "VRA", "UA", "UAA", "HESAY", "CFRUY", "MAMK", "VNCE", "SHZHY", "SMSEY", "LVMUY", "ANPDY", "CRI", "LEVI", "PVH", "GIII", "JEM", "MONRY", "JRSH", "VFC", "COLM", "GOOS", "PMNT", "BRIA", "CPRI", "LANV", "JL", "CULP", "UFI", "OXM", "JXG", "PASW"] },
+  { symbol: "G3141", name: "Apparel-Shoes & Rel Mfg", tickers: ["RCKY", "WEYS", "DECK", "BIRK", "ONON", "SHOO", "CROX", "ADDYY", "WWW", "PUMSY", "NKE", "BIRD", "FMFC"] },
+  { symbol: "G3711", name: "Auto Manufacturers", tickers: ["GM", "NIO", "TM", "TYIDY", "BYDDF", "TSLA", "SZKMY", "RACE", "XPEV", "GP", "RIVN", "F", "POAHY", "SSM", "LI", "HMC", "FUJHY", "FFAI", "LOT", "MBGAF", "VWAGY", "VWAPY", "GGR", "DCX", "VFS", "CENN", "LVWR", "PSNY", "KNDI", "EVTV", "NSANY", "LCID", "SEV", "FLYE", "STLA", "LOBO", "SBLX"] },
   { symbol: "G3714", name: "Auto/Truck-Original Eqp", tickers: [] },
   { symbol: "G3715", name: "Auto/Truck-Replace Parts", tickers: [] },
   { symbol: "G3011", name: "Auto/Truck-Tires & Misc", tickers: [] },
