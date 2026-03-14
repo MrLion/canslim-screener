@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0] - 2026-03-14
+
+### Added
+- **IBD 197 Industry Groups** — replaced Yahoo Finance sector/industry mapping with official IBD 197 industry group classification from MarketSurge
+- New `src/lib/ibd-groups.ts` data file with all 197 groups organized into ~40 sectors
+- Groups include IBD symbol codes (e.g., G3722 for Aerospace/Defense)
+- Sector derivation logic automatically categorizes groups into browsable sectors
+
+### Changed
+- `/api/industries` now returns static IBD groups instead of fetching from Yahoo Finance (instant load, no API calls)
+- `IndustryPicker` redesigned for IBD group structure with sector/group hierarchy
+- Industry picker header shows "IBD 197 Industry Groups" with group and sector counts
+- Selection now works by IBD group symbol rather than Yahoo sector/industry key
+- README updated to reflect IBD industry group classification
+
+### Note
+- Stock ticker assignments per IBD group will be provided in a future update
+- "Scan All" continues to scan the full S&P 500 + NASDAQ 100 universe
+
 ## [0.2.0] - 2026-03-14
 
 ### Added

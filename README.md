@@ -1,6 +1,6 @@
 # CAN SLIM Screener
 
-A web app that screens 500+ stocks against William O'Neil's CAN SLIM investment methodology and ranks them by composite score. Results stream in live as they're computed.
+A web app that screens stocks against William O'Neil's CAN SLIM investment methodology using IBD's 197 Industry Groups classification. Results stream in live as they're computed.
 
 ## CAN SLIM Criteria
 
@@ -21,16 +21,17 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), select industries, and click **Scan Selected** or **Scan All**.
+Open [http://localhost:3000](http://localhost:3000), select IBD industry groups, and click **Scan Selected** or **Scan All**.
 
-- Select specific industries to scan a focused subset of stocks in seconds
-- Or scan all 500+ stocks at once (takes ~2-3 minutes)
+- Browse 197 IBD industry groups organized into ~40 sectors
+- Select specific groups to scan a focused subset of stocks
+- Or scan all stocks at once (takes ~2-3 minutes)
 - Results stream in progressively — you can browse while scanning continues
 - Subsequent scans are faster thanks to 4-hour in-memory caching
 
 ## Features
 
-- **Industry selection** — pick sectors and industries to scan only the stocks you care about
+- **IBD 197 Industry Groups** — browse and select from IBD's official 197 industry group classification
 - **Streaming results** — stocks appear ranked as they're scored via Server-Sent Events
 - **Progress bar** — real-time scan progress (e.g., 300/517 scanned)
 - **Market direction banner** — shows current S&P 500 trend status (M criterion) with color-coded signals (green/orange/red)
@@ -52,14 +53,15 @@ src/
 ├── app/
 │   ├── page.tsx                       # Main screener UI (SSE consumer)
 │   ├── api/screen/route.ts            # Streaming API (SSE producer, supports ?tickers= filter)
-│   ├── api/industries/route.ts        # Industry metadata API (sector → industry → tickers)
+│   ├── api/industries/route.ts        # IBD 197 industry groups API
 │   └── api/stock/[ticker]/route.ts    # Individual stock detail API
 ├── lib/
 │   ├── canslim.ts                     # CAN SLIM scoring engine
 │   ├── yahoo.ts                       # Yahoo Finance data layer + caching
-│   └── tickers.ts                     # S&P 500 + NASDAQ 100 ticker lists
+│   ├── tickers.ts                     # S&P 500 + NASDAQ 100 ticker lists
+│   └── ibd-groups.ts                  # IBD 197 industry group definitions
 └── components/
-    ├── IndustryPicker.tsx             # Sector/industry selection UI
+    ├── IndustryPicker.tsx             # IBD industry group selector UI
     ├── StockTable.tsx                 # Sortable/filterable results table
     ├── ScoreBar.tsx                   # Visual score indicator
     └── MarketStatus.tsx               # Market direction banner
@@ -81,7 +83,7 @@ Each stock is evaluated against 6 criteria (C, A, N, S, L, I) plus the market di
 
 ## Data Source
 
-All data comes from Yahoo Finance via the `yahoo-finance2` npm package. No API key is required. The stock universe includes S&P 500 constituents plus select NASDAQ 100 names (~517 tickers total).
+All data comes from Yahoo Finance via the `yahoo-finance2` npm package. No API key is required. Industry classification uses IBD's 197 Industry Groups from MarketSurge. The stock universe includes S&P 500 constituents plus select NASDAQ 100 names (~500 tickers total).
 
 ## Notes
 
