@@ -40,7 +40,7 @@ export interface MarketDirection {
 
 // C - Current Quarterly Earnings
 function scoreC(earnings: EarningsData | null): CriterionResult {
-  if (!earnings || earnings.quarterlyEps.length < 5) {
+  if (!earnings || earnings.quarterlyEps.length < 2) {
     return { pass: false, score: 0, value: "N/A", detail: "Insufficient quarterly data" };
   }
 

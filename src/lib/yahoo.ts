@@ -79,16 +79,43 @@ export async function getEarnings(symbol: string): Promise<EarningsData | null> 
   if (cached) return cached;
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = await yf.quoteSummary(symbol, {
-      modules: ["earnings", "earningsHistory", "financialData"],
-    });
+    // Fetch quarterly EPS from fundamentalsTimeSeries (more reliable than earningsHistory)
+    // and annual data from quoteSummary earnings module
+    const [timeSeries, summary] = await Promise.all([
+      yf.fundamentalsTimeSeries(symbol, {
+        type: "quarterly" as const,
+        period1: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000), // 2 years back
+        period2: new Date(),
+        module: "financials" as const,
+      }).catch(() => null),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      yf.quoteSummary(symbol, {
+        modules: ["earnings"],
+      }).catch(() => null) as Promise<any>,
+    ]);
 
     const quarterlyEps: { date: string; actual: number }[] = [];
     const annualEps: { year: number; eps: number }[] = [];
 
-    if (result.earningsHistory?.history) {
-      for (const h of result.earningsHistory.history) {
+    // Extract quarterly EPS from fundamentalsTimeSeries
+    if (timeSeries) {
+      for (const entry of timeSeries) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const e = entry as any;
+        const eps = e.dilutedEPS ?? e.basicEPS;
+        if (eps != null && e.date) {
+          const d = e.date instanceof Date ? e.date : new Date(e.date);
+          quarterlyEps.push({
+            date: d.toISOString().slice(0, 10),
+            actual: eps,
+          });
+        }
+      }
+    }
+
+    // Fallback: if fundamentalsTimeSeries returned nothing, try earningsHistory
+    if (quarterlyEps.length === 0 && summary?.earningsHistory?.history) {
+      for (const h of summary.earningsHistory.history) {
         if (h.epsActual != null && h.quarter) {
           const d = h.quarter instanceof Date ? h.quarter : new Date(h.quarter);
           quarterlyEps.push({
@@ -99,8 +126,9 @@ export async function getEarnings(symbol: string): Promise<EarningsData | null> 
       }
     }
 
-    if (result.earnings?.financialsChart?.yearly) {
-      for (const y of result.earnings.financialsChart.yearly) {
+    // Annual earnings from earnings module
+    if (summary?.earnings?.financialsChart?.yearly) {
+      for (const y of summary.earnings.financialsChart.yearly) {
         if (y.earnings != null) {
           annualEps.push({ year: y.date, eps: y.earnings });
         }
