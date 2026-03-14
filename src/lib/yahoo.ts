@@ -16,6 +16,8 @@ export interface StockQuote {
   fiftyTwoWeekLow: number;
   marketCap: number;
   sharesOutstanding: number;
+  sector: string;
+  industry: string;
 }
 
 export interface EarningsData {
@@ -56,6 +58,8 @@ export async function getQuotes(symbols: string[]): Promise<Map<string, StockQuo
           fiftyTwoWeekLow: q.fiftyTwoWeekLow ?? 0,
           marketCap: q.marketCap ?? 0,
           sharesOutstanding: q.sharesOutstanding ?? 0,
+          sector: q.sector || "Unknown",
+          industry: q.industry || "Unknown",
         };
         cache.set(`quote:${q.symbol}`, mapped);
         results.set(q.symbol, mapped);
@@ -164,6 +168,27 @@ export async function getInstitutionalHoldings(symbol: string): Promise<Institut
     return data;
   } catch {
     return null;
+  }
+}
+
+export async function getSectorIndustry(symbol: string): Promise<{ sector: string; industry: string }> {
+  const cacheKey = `sector:${symbol}`;
+  const cached = cache.get<{ sector: string; industry: string }>(cacheKey);
+  if (cached) return cached;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result: any = await yf.quoteSummary(symbol, {
+      modules: ["assetProfile"],
+    });
+    const data = {
+      sector: result.assetProfile?.sector || "Unknown",
+      industry: result.assetProfile?.industry || "Unknown",
+    };
+    cache.set(cacheKey, data, 86400); // 24hr cache for sector data
+    return data;
+  } catch {
+    return { sector: "Unknown", industry: "Unknown" };
   }
 }
 

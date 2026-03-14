@@ -3,6 +3,7 @@
 import { useState, useCallback, useRef } from "react";
 import MarketStatus from "@/components/MarketStatus";
 import StockTable from "@/components/StockTable";
+import IndustryPicker from "@/components/IndustryPicker";
 
 interface MarketDirection {
   trend: "uptrend" | "downtrend" | "neutral";
@@ -42,7 +43,7 @@ export default function Home() {
   const [timestamp, setTimestamp] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const fetchData = useCallback(async () => {
+  const fetchData = useCallback(async (tickers: string[] | null = null) => {
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
@@ -55,7 +56,10 @@ export default function Home() {
     setTimestamp(null);
 
     try {
-      const res = await fetch("/api/screen", { signal: controller.signal });
+      const url = tickers
+        ? `/api/screen?tickers=${tickers.join(",")}`
+        : "/api/screen";
+      const res = await fetch(url, { signal: controller.signal });
       if (!res.ok || !res.body) throw new Error("Failed to fetch");
 
       const reader = res.body.getReader();
@@ -140,13 +144,6 @@ export default function Home() {
                   ` | ${new Date(timestamp).toLocaleTimeString()}`}
               </span>
             )}
-            <button
-              onClick={fetchData}
-              disabled={loading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-sm font-medium transition-colors"
-            >
-              {loading ? "Scanning..." : started ? "Refresh" : "Start Scan"}
-            </button>
           </div>
         </div>
 
@@ -169,19 +166,8 @@ export default function Home() {
           <MarketStatus market={market} />
         </div>
 
-        {/* Prompt to start */}
-        {!started && !error && (
-          <div className="flex flex-col items-center justify-center py-20">
-            <p className="text-gray-400 mb-4">
-              Click &quot;Start Scan&quot; to screen 500+ stocks against CAN
-              SLIM criteria
-            </p>
-            <p className="text-xs text-gray-600">
-              First scan takes 2-4 minutes. Results stream in as
-              they&apos;re computed.
-            </p>
-          </div>
-        )}
+        {/* Industry Picker */}
+        <IndustryPicker onScan={fetchData} loading={loading} />
 
         {/* Loading State (before any results arrive) */}
         {loading && results.length === 0 && progress.scanned === 0 && (

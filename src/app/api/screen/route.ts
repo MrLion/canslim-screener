@@ -5,7 +5,15 @@ import { getSP500History } from "@/lib/yahoo";
 export const maxDuration = 300;
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const tickersParam = searchParams.get("tickers");
+
+  // Use filtered tickers if provided, otherwise scan all
+  const tickers = tickersParam
+    ? tickersParam.split(",").filter((t) => t.trim())
+    : ALL_TICKERS;
+
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({
@@ -24,14 +32,14 @@ export async function GET() {
         ]);
 
         send("market", market);
-        send("progress", { scanned: 0, total: ALL_TICKERS.length });
+        send("progress", { scanned: 0, total: tickers.length });
 
         // Process tickers in batches of 10 concurrently
         const BATCH_SIZE = 10;
         let scanned = 0;
 
-        for (let i = 0; i < ALL_TICKERS.length; i += BATCH_SIZE) {
-          const batch = ALL_TICKERS.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
+          const batch = tickers.slice(i, i + BATCH_SIZE);
           const results = await screenBatch(batch, sp500Prices, market);
 
           scanned += batch.length;
@@ -41,7 +49,7 @@ export async function GET() {
             send("stock", result);
           }
 
-          send("progress", { scanned, total: ALL_TICKERS.length });
+          send("progress", { scanned, total: tickers.length });
         }
 
         send("done", { scanned, timestamp: new Date().toISOString() });

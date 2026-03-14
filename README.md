@@ -21,17 +21,19 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) and click **Start Scan**.
+Open [http://localhost:3000](http://localhost:3000), select industries, and click **Scan Selected** or **Scan All**.
 
-- First scan takes ~2-3 minutes (fetching data for 500+ stocks from Yahoo Finance)
+- Select specific industries to scan a focused subset of stocks in seconds
+- Or scan all 500+ stocks at once (takes ~2-3 minutes)
 - Results stream in progressively — you can browse while scanning continues
 - Subsequent scans are faster thanks to 4-hour in-memory caching
 
 ## Features
 
+- **Industry selection** — pick sectors and industries to scan only the stocks you care about
 - **Streaming results** — stocks appear ranked as they're scored via Server-Sent Events
 - **Progress bar** — real-time scan progress (e.g., 300/517 scanned)
-- **Market direction banner** — shows current S&P 500 trend status (M criterion)
+- **Market direction banner** — shows current S&P 500 trend status (M criterion) with color-coded signals (green/orange/red)
 - **Sortable columns** — sort by composite score or any individual CAN SLIM criterion
 - **Filter** — search by ticker symbol or company name
 - **Expandable rows** — click any stock to see detailed score breakdowns with visual score bars
@@ -48,17 +50,19 @@ Open [http://localhost:3000](http://localhost:3000) and click **Start Scan**.
 ```
 src/
 ├── app/
-│   ├── page.tsx                    # Main screener UI (SSE consumer)
-│   ├── api/screen/route.ts         # Streaming API (SSE producer)
-│   └── api/stock/[ticker]/route.ts # Individual stock detail API
+│   ├── page.tsx                       # Main screener UI (SSE consumer)
+│   ├── api/screen/route.ts            # Streaming API (SSE producer, supports ?tickers= filter)
+│   ├── api/industries/route.ts        # Industry metadata API (sector → industry → tickers)
+│   └── api/stock/[ticker]/route.ts    # Individual stock detail API
 ├── lib/
-│   ├── canslim.ts                  # CAN SLIM scoring engine
-│   ├── yahoo.ts                    # Yahoo Finance data layer + caching
-│   └── tickers.ts                  # S&P 500 + NASDAQ 100 ticker lists
+│   ├── canslim.ts                     # CAN SLIM scoring engine
+│   ├── yahoo.ts                       # Yahoo Finance data layer + caching
+│   └── tickers.ts                     # S&P 500 + NASDAQ 100 ticker lists
 └── components/
-    ├── StockTable.tsx              # Sortable/filterable results table
-    ├── ScoreBar.tsx                # Visual score indicator
-    └── MarketStatus.tsx            # Market direction banner
+    ├── IndustryPicker.tsx             # Sector/industry selection UI
+    ├── StockTable.tsx                 # Sortable/filterable results table
+    ├── ScoreBar.tsx                   # Visual score indicator
+    └── MarketStatus.tsx               # Market direction banner
 ```
 
 ## How Scoring Works
