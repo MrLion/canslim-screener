@@ -161,6 +161,18 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
             </span>
           )}
           <button
+            onClick={() => {
+              if (expandedSectors.size > 0) {
+                setExpandedSectors(new Set());
+              } else {
+                setExpandedSectors(new Set(sortedSectors));
+              }
+            }}
+            className="text-xs text-gray-500 hover:text-white transition-colors"
+          >
+            {expandedSectors.size > 0 ? "Collapse All" : "Expand All"}
+          </button>
+          <button
             onClick={() => setSelectedGroups(new Set())}
             disabled={totalSelectedGroups === 0}
             className="text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
