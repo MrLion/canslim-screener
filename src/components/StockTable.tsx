@@ -38,7 +38,7 @@ function timeAgo(iso: string): string {
 }
 
 function isStale(iso: string): boolean {
-  return Date.now() - new Date(iso).getTime() > 4 * 60 * 60 * 1000;
+  return Date.now() - new Date(iso).getTime() > 24 * 60 * 60 * 1000;
 }
 
 type SortKey = "compositeScore" | "C" | "A" | "N" | "S" | "L" | "I" | "symbol" | "price";
