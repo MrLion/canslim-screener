@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import ScoreBar from "./ScoreBar";
 
 interface CriterionResult {
@@ -164,9 +164,8 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
           </thead>
           <tbody className="divide-y divide-gray-800/50">
             {sorted.map((stock, idx) => (
-              <>
+              <Fragment key={stock.symbol}>
                 <tr
-                  key={stock.symbol}
                   className="hover:bg-gray-800/50 cursor-pointer transition-colors"
                   onClick={() =>
                     setExpanded(expanded === stock.symbol ? null : stock.symbol)
@@ -261,7 +260,7 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
