@@ -1,9 +1,22 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import MarketStatus from "@/components/MarketStatus";
 import StockTable from "@/components/StockTable";
 import IndustryPicker from "@/components/IndustryPicker";
+import {
+  readCache,
+  getCachedResults,
+  getCachedMarket,
+  cacheStockResult,
+  cacheMarket,
+  partitionTickers,
+  clearCache,
+  getCacheStats,
+  timeAgo,
+  type CachedResult,
+  type MarketCache,
+} from "@/lib/scan-cache";
 
 interface MarketDirection {
   trend: "uptrend" | "downtrend" | "neutral";
@@ -32,6 +45,11 @@ export interface StockResult {
   L: CriterionResult;
   I: CriterionResult;
   M: CriterionResult;
+  scannedAt?: string;
+}
+
+function toStockResult(cached: CachedResult): StockResult {
+  return { ...cached };
 }
 
 export default function Home() {
@@ -41,83 +59,235 @@ export default function Home() {
   const [progress, setProgress] = useState({ scanned: 0, total: 0 });
   const [error, setError] = useState<string | null>(null);
   const [timestamp, setTimestamp] = useState<string | null>(null);
+  const [cacheInfo, setCacheInfo] = useState<{
+    totalCached: number;
+    freshCount: number;
+    staleCount: number;
+    newestScan: string | null;
+  } | null>(null);
+  const [skippedFresh, setSkippedFresh] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
+  // Track symbols that were merged from cache for this display session
+  const mergedSymbolsRef = useRef<Set<string>>(new Set());
 
-  const fetchData = useCallback(async (tickers: string[] | null = null) => {
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
+  // Load cache stats on mount
+  useEffect(() => {
+    const stats = getCacheStats();
+    setCacheInfo(stats);
 
-    setLoading(true);
-    setError(null);
-    setResults([]);
-    setMarket(null);
-    setProgress({ scanned: 0, total: 0 });
-    setTimestamp(null);
+    // Restore cached market data
+    const cachedMarket = getCachedMarket();
+    if (cachedMarket) {
+      setMarket(cachedMarket);
+    }
 
-    try {
-      const url = tickers
-        ? `/api/screen?tickers=${tickers.join(",")}`
-        : "/api/screen";
-      const res = await fetch(url, { signal: controller.signal });
-      if (!res.ok || !res.body) throw new Error("Failed to fetch");
-
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        let eventType = "";
-        for (const line of lines) {
-          if (line.startsWith("event: ")) {
-            eventType = line.slice(7);
-          } else if (line.startsWith("data: ") && eventType) {
-            try {
-              const data = JSON.parse(line.slice(6));
-              switch (eventType) {
-                case "market":
-                  setMarket(data);
-                  break;
-                case "stock":
-                  setResults((prev) => {
-                    const next = [...prev, data];
-                    next.sort((a, b) => b.compositeScore - a.compositeScore);
-                    return next;
-                  });
-                  break;
-                case "progress":
-                  setProgress(data);
-                  break;
-                case "done":
-                  setTimestamp(data.timestamp);
-                  break;
-                case "error":
-                  setError(data.message);
-                  break;
-              }
-            } catch {
-              // skip malformed JSON
-            }
-            eventType = "";
-          }
-        }
+    // Restore cached results
+    const cachedResults = getCachedResults();
+    if (cachedResults.length > 0) {
+      setResults(cachedResults.map(toStockResult));
+      const cache = readCache();
+      if (cache.marketTimestamp) {
+        setTimestamp(cache.marketTimestamp);
       }
-    } catch (e) {
-      if ((e as Error).name !== "AbortError") {
-        setError("Failed to load screener data. Please try again.");
-      }
-    } finally {
-      setLoading(false);
     }
   }, []);
+
+  const updateCacheInfo = useCallback(() => {
+    setCacheInfo(getCacheStats());
+  }, []);
+
+  const fetchData = useCallback(
+    async (tickers: string[] | null = null, forceRescan = false) => {
+      if (abortRef.current) abortRef.current.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      setLoading(true);
+      setError(null);
+      setSkippedFresh(0);
+      mergedSymbolsRef.current = new Set();
+
+      // Determine which tickers actually need scanning
+      let tickersToScan: string[] | null = null;
+      let freshResults: CachedResult[] = [];
+
+      if (!forceRescan && tickers) {
+        const { fresh, stale, missing } = partitionTickers(tickers);
+        freshResults = getCachedResults(fresh);
+        tickersToScan = [...stale, ...missing];
+        setSkippedFresh(fresh.length);
+
+        if (tickersToScan.length === 0) {
+          // Everything is fresh — just display cached results
+          const cachedMarket = getCachedMarket();
+          if (cachedMarket) setMarket(cachedMarket);
+          setResults(freshResults.map(toStockResult));
+          setTimestamp(new Date().toISOString());
+          setLoading(false);
+          updateCacheInfo();
+          return;
+        }
+      }
+
+      // Start with fresh cached results (they'll be merged with new ones)
+      if (freshResults.length > 0) {
+        setResults(freshResults.map(toStockResult));
+        for (const r of freshResults) {
+          mergedSymbolsRef.current.add(r.symbol);
+        }
+      } else if (forceRescan) {
+        setResults([]);
+      } else {
+        // Keep existing results visible, new ones will merge in
+        // but clear if doing a full scan (tickers === null)
+        if (tickers === null) setResults([]);
+      }
+
+      setProgress({ scanned: 0, total: 0 });
+
+      try {
+        const url = tickersToScan
+          ? `/api/screen?tickers=${tickersToScan.join(",")}`
+          : tickers === null
+          ? "/api/screen"
+          : `/api/screen?tickers=${tickers.join(",")}`;
+
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok || !res.body) throw new Error("Failed to fetch");
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+
+        // Batch cache writes for efficiency
+        const pendingCacheWrites: CachedResult[] = [];
+        let marketData: MarketCache | undefined;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          let eventType = "";
+          for (const line of lines) {
+            if (line.startsWith("event: ")) {
+              eventType = line.slice(7);
+            } else if (line.startsWith("data: ") && eventType) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                switch (eventType) {
+                  case "market":
+                    setMarket(data);
+                    marketData = data;
+                    cacheMarket(data);
+                    break;
+                  case "stock": {
+                    const stockWithTimestamp: StockResult = {
+                      ...data,
+                      scannedAt: new Date().toISOString(),
+                    };
+                    setResults((prev) => {
+                      // Merge: replace if exists, append if new
+                      const existing = new Map(prev.map((r) => [r.symbol, r]));
+                      existing.set(stockWithTimestamp.symbol, stockWithTimestamp);
+                      const merged = [...existing.values()];
+                      merged.sort((a, b) => b.compositeScore - a.compositeScore);
+                      return merged;
+                    });
+                    // Queue for batch cache write
+                    pendingCacheWrites.push({
+                      ...data,
+                      scannedAt: new Date().toISOString(),
+                    });
+                    // Flush cache every 10 results
+                    if (pendingCacheWrites.length >= 10) {
+                      const cache = readCache();
+                      for (const r of pendingCacheWrites) {
+                        cache.results[r.symbol] = r;
+                      }
+                      if (marketData) {
+                        cache.market = marketData;
+                        cache.marketTimestamp = new Date().toISOString();
+                      }
+                      localStorage.setItem(
+                        "canslim-scan-cache",
+                        JSON.stringify(cache)
+                      );
+                      pendingCacheWrites.length = 0;
+                    }
+                    break;
+                  }
+                  case "progress":
+                    setProgress(data);
+                    break;
+                  case "done":
+                    setTimestamp(data.timestamp);
+                    break;
+                  case "error":
+                    setError(data.message);
+                    break;
+                }
+              } catch {
+                // skip malformed JSON
+              }
+              eventType = "";
+            }
+          }
+        }
+
+        // Flush remaining cache writes
+        if (pendingCacheWrites.length > 0) {
+          const cache = readCache();
+          for (const r of pendingCacheWrites) {
+            cache.results[r.symbol] = r;
+          }
+          if (marketData) {
+            cache.market = marketData;
+            cache.marketTimestamp = new Date().toISOString();
+          }
+          localStorage.setItem("canslim-scan-cache", JSON.stringify(cache));
+        }
+
+        updateCacheInfo();
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") {
+          setError("Failed to load screener data. Please try again.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    },
+    [updateCacheInfo]
+  );
+
+  const handleScan = useCallback(
+    (tickers: string[] | null) => {
+      fetchData(tickers, false);
+    },
+    [fetchData]
+  );
+
+  const handleRescanAll = useCallback(() => {
+    clearCache();
+    updateCacheInfo();
+    setResults([]);
+    setMarket(null);
+    setSkippedFresh(0);
+    fetchData(null, true);
+  }, [fetchData, updateCacheInfo]);
+
+  const handleClearCache = useCallback(() => {
+    clearCache();
+    updateCacheInfo();
+    setResults([]);
+    setMarket(null);
+    setTimestamp(null);
+    setSkippedFresh(0);
+  }, [updateCacheInfo]);
 
   const started = loading || results.length > 0;
 
@@ -158,6 +328,11 @@ export default function Home() {
                 }}
               />
             </div>
+            {skippedFresh > 0 && (
+              <p className="text-[10px] text-gray-600 mt-1">
+                {skippedFresh} stocks loaded from cache &middot; scanning {progress.total} new/stale
+              </p>
+            )}
           </div>
         )}
 
@@ -167,7 +342,49 @@ export default function Home() {
         </div>
 
         {/* Industry Picker */}
-        <IndustryPicker onScan={fetchData} loading={loading} />
+        <IndustryPicker onScan={handleScan} loading={loading} />
+
+        {/* Cache Status Bar */}
+        {cacheInfo && cacheInfo.totalCached > 0 && !loading && (
+          <div className="flex items-center justify-between px-4 py-2 mb-4 bg-gray-900/50 border border-gray-800 rounded-lg">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-green-500/70" />
+                <span className="text-xs text-gray-400">
+                  {cacheInfo.totalCached} stocks cached
+                </span>
+              </div>
+              {cacheInfo.staleCount > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2 h-2 rounded-full bg-yellow-500/70" />
+                  <span className="text-xs text-gray-500">
+                    {cacheInfo.staleCount} stale
+                  </span>
+                </div>
+              )}
+              {cacheInfo.newestScan && (
+                <span className="text-[10px] text-gray-600">
+                  Last scan: {timeAgo(cacheInfo.newestScan)}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRescanAll}
+                className="text-[11px] text-gray-500 hover:text-blue-400 transition-colors"
+              >
+                Rescan All
+              </button>
+              <span className="text-gray-800">|</span>
+              <button
+                onClick={handleClearCache}
+                className="text-[11px] text-gray-500 hover:text-red-400 transition-colors"
+              >
+                Clear Cache
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Loading State (before any results arrive) */}
         {loading && results.length === 0 && progress.scanned === 0 && (

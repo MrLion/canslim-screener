@@ -23,6 +23,22 @@ interface CANSLIMResult {
   L: CriterionResult;
   I: CriterionResult;
   M: CriterionResult;
+  scannedAt?: string;
+}
+
+function timeAgo(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(ms / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function isStale(iso: string): boolean {
+  return Date.now() - new Date(iso).getTime() > 4 * 60 * 60 * 1000;
 }
 
 type SortKey = "compositeScore" | "C" | "A" | "N" | "S" | "L" | "I" | "symbol" | "price";
@@ -156,7 +172,14 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
                     setExpanded(expanded === stock.symbol ? null : stock.symbol)
                   }
                 >
-                  <td className="px-3 py-2 text-gray-500 text-xs">{idx + 1}</td>
+                  <td className="px-3 py-2 text-gray-500 text-xs">
+                    <div className="flex items-center gap-1">
+                      {idx + 1}
+                      {stock.scannedAt && isStale(stock.scannedAt) && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/60" title={`Stale — scanned ${timeAgo(stock.scannedAt)}`} />
+                      )}
+                    </div>
+                  </td>
                   <td className="px-3 py-2 font-mono font-bold text-white">
                     {stock.symbol}
                   </td>
@@ -224,9 +247,16 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
                           </div>
                         ))}
                       </div>
-                      <div className="mt-3 text-xs text-gray-600">
-                        Market Cap: $
-                        {(stock.marketCap / 1e9).toFixed(1)}B
+                      <div className="mt-3 flex items-center gap-4 text-xs text-gray-600">
+                        <span>
+                          Market Cap: ${(stock.marketCap / 1e9).toFixed(1)}B
+                        </span>
+                        {stock.scannedAt && (
+                          <span className={`flex items-center gap-1 ${isStale(stock.scannedAt) ? "text-yellow-600" : "text-gray-700"}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isStale(stock.scannedAt) ? "bg-yellow-500/60" : "bg-green-500/40"}`} />
+                            Scanned {timeAgo(stock.scannedAt)}
+                          </span>
+                        )}
                       </div>
                     </td>
                   </tr>
