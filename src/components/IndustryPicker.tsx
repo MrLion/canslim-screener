@@ -90,31 +90,34 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
     });
   };
 
-  const selectAllInSector = (sector: string) => {
+  const selectAllInSector = (sector: string, visibleGroups?: IndustryGroup[]) => {
     if (!data) return;
+    const groups = visibleGroups ?? data.sectors[sector];
     updateSelectedGroups((prev) => {
       const next = new Set(prev);
-      for (const group of data.sectors[sector]) {
+      for (const group of groups) {
         next.add(group.symbol);
       }
       return next;
     });
   };
 
-  const deselectAllInSector = (sector: string) => {
+  const deselectAllInSector = (sector: string, visibleGroups?: IndustryGroup[]) => {
     if (!data) return;
+    const groups = visibleGroups ?? data.sectors[sector];
     updateSelectedGroups((prev) => {
       const next = new Set(prev);
-      for (const group of data.sectors[sector]) {
+      for (const group of groups) {
         next.delete(group.symbol);
       }
       return next;
     });
   };
 
-  const isSectorFullySelected = (sector: string): boolean => {
+  const isSectorFullySelected = (sector: string, visibleGroups?: IndustryGroup[]): boolean => {
     if (!data) return false;
-    return data.sectors[sector].every((g) => selectedGroups.has(g.symbol));
+    const groups = visibleGroups ?? data.sectors[sector];
+    return groups.length > 0 && groups.every((g) => selectedGroups.has(g.symbol));
   };
 
   const isSectorPartiallySelected = (sector: string): boolean => {
@@ -206,20 +209,20 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
   return (
     <div className="border border-gray-800 rounded-lg mb-6">
       {/* Header row */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between px-4 py-3 border-b border-gray-800 gap-2">
+        <div className="min-w-0">
           <h2 className="text-sm font-bold text-white">IBD 197 Industry Groups</h2>
-          <p className="text-[10px] text-gray-500 mt-0.5">
+          <p className="text-[10px] text-gray-500 mt-0.5 truncate">
             {data.totalGroups} groups across {allSectorNames.length} sectors
-            {hasAnyTickers && ` \u00b7 ${data.tickersAssigned} stocks assigned across ${populatedGroupCount} groups`}
+            {hasAnyTickers && ` \u00b7 ${data.tickersAssigned} stocks in ${populatedGroupCount} groups`}
             {!hasAnyTickers && " \u00b7 Stock assignments pending"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           {totalSelectedGroups > 0 && (
-            <span className="text-xs text-gray-400">
+            <span className="text-[11px] sm:text-xs text-gray-400">
               {totalSelectedGroups} group{totalSelectedGroups !== 1 ? "s" : ""}
-              {totalSelectedTickers > 0 && ` (${totalSelectedTickers} stocks)`}
+              {totalSelectedTickers > 0 && ` (${totalSelectedTickers})`}
             </span>
           )}
           <button
@@ -230,7 +233,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
                 setExpandedSectors(new Set(allSectorNames));
               }
             }}
-            className="text-xs text-gray-500 hover:text-white transition-colors"
+            className="text-[11px] sm:text-xs text-gray-500 hover:text-white transition-colors"
           >
             {expandedSectors.size > 0 ? "Collapse All" : "Expand All"}
           </button>
@@ -239,7 +242,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
               updateSelectedGroups(() => new Set());
             }}
             disabled={totalSelectedGroups === 0}
-            className="text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
+            className="text-[11px] sm:text-xs text-gray-500 hover:text-white disabled:opacity-30 transition-colors"
           >
             Clear
           </button>
@@ -248,7 +251,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
               onScan(totalSelectedTickers > 0 ? selectedTickers : null)
             }
             disabled={loading || (totalSelectedGroups > 0 && totalSelectedTickers === 0)}
-            className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-xs font-medium transition-colors"
+            className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 rounded-lg text-[11px] sm:text-xs font-medium transition-colors whitespace-nowrap"
           >
             {loading
               ? "Scanning..."
@@ -262,8 +265,8 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
       </div>
 
       {/* Search & filter bar */}
-      <div className="flex items-center gap-3 px-4 py-2 border-b border-gray-800/50 bg-gray-950/30">
-        <div className="relative flex-1 max-w-xs">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-4 py-2 border-b border-gray-800/50 bg-gray-950/30">
+        <div className="relative flex-1 min-w-[180px] max-w-xs">
           <svg
             className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600"
             fill="none"
@@ -285,7 +288,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
               onClick={() => setSearchQuery("")}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-400"
             >
-              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
@@ -345,13 +348,13 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
                   <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() =>
-                        isSectorFullySelected(sector)
-                          ? deselectAllInSector(sector)
-                          : selectAllInSector(sector)
+                        isSectorFullySelected(sector, groups)
+                          ? deselectAllInSector(sector, groups)
+                          : selectAllInSector(sector, groups)
                       }
                       className="text-[10px] text-gray-600 hover:text-blue-400 transition-colors"
                     >
-                      {isSectorFullySelected(sector) ? "Deselect all" : "Select all"}
+                      {isSectorFullySelected(sector, groups) ? "Deselect all" : "Select all"}
                     </button>
                   </div>
                 </div>

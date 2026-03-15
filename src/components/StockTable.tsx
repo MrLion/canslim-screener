@@ -132,13 +132,94 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
   const passCount = (r: CANSLIMResult) =>
     CRITERIA.filter((c) => r[c].pass).length;
 
+  /* Mobile card for a single stock */
+  const MobileCard = ({ stock, idx }: { stock: CANSLIMResult; idx: number }) => {
+    const isExpanded = expanded === stock.symbol;
+    return (
+      <div
+        className="p-3 border-b border-gray-800/50 active:bg-gray-800/50 cursor-pointer"
+        onClick={() => setExpanded(isExpanded ? null : stock.symbol)}
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-[10px] text-gray-600 w-5 shrink-0">{idx + 1}</span>
+            <span className="font-mono font-bold text-white text-sm">{stock.symbol}</span>
+            {stock.scannedAt && isStale(stock.scannedAt) && (
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/60 shrink-0" />
+            )}
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="text-xs text-gray-400">${stock.price.toFixed(2)}</span>
+            <span
+              className={`text-sm font-bold ${
+                stock.compositeScore >= 70
+                  ? "text-green-400"
+                  : stock.compositeScore >= 50
+                  ? "text-yellow-400"
+                  : "text-red-400"
+              }`}
+            >
+              {stock.compositeScore}
+            </span>
+            <span
+              className={`text-xs font-bold ${
+                passCount(stock) >= 5
+                  ? "text-green-400"
+                  : passCount(stock) >= 3
+                  ? "text-yellow-400"
+                  : "text-red-400"
+              }`}
+            >
+              {passCount(stock)}/6
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-[11px] text-gray-500 truncate mr-2">{stock.name}</span>
+          <div className="flex items-center gap-0.5 shrink-0">
+            {CRITERIA.map((c) => (
+              <PassFail key={c} result={stock[c]} />
+            ))}
+          </div>
+        </div>
+        {isExpanded && (
+          <div className="mt-3 pt-3 border-t border-gray-800/50">
+            <div className="grid grid-cols-2 gap-3">
+              {CRITERIA.map((c) => (
+                <div key={c} className="space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-bold text-white text-[11px]">
+                      {c} — {CRITERIA_LABELS[c]}
+                    </span>
+                    <PassFail result={stock[c]} />
+                  </div>
+                  <ScoreBar score={stock[c].score} pass={stock[c].pass} />
+                  <div className="text-[10px] text-gray-500">{stock[c].detail}</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-600">
+              <span>Mkt Cap: ${(stock.marketCap / 1e9).toFixed(1)}B</span>
+              {stock.scannedAt && (
+                <span className={`flex items-center gap-1 ${isStale(stock.scannedAt) ? "text-yellow-600" : "text-gray-700"}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isStale(stock.scannedAt) ? "bg-yellow-500/60" : "bg-green-500/40"}`} />
+                  {timeAgo(stock.scannedAt)}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4 gap-4 flex-wrap">
         <input
           type="text"
           placeholder="Filter by ticker or name..."
-          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 w-64"
+          className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 w-full sm:w-64"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
@@ -147,7 +228,15 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-gray-800">
+      {/* Mobile card layout */}
+      <div className="md:hidden rounded-lg border border-gray-800 overflow-hidden">
+        {sorted.map((stock, idx) => (
+          <MobileCard key={stock.symbol} stock={stock} idx={idx} />
+        ))}
+      </div>
+
+      {/* Desktop table layout */}
+      <div className="hidden md:block overflow-x-auto rounded-lg border border-gray-800">
         <table className="w-full text-sm">
           <thead className="bg-gray-900/50">
             <tr>
