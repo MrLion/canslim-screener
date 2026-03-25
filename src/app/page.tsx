@@ -17,40 +17,7 @@ import {
   type CachedResult,
   type MarketCache,
 } from "@/lib/scan-cache";
-
-interface MarketDirection {
-  trend: "uptrend" | "downtrend" | "neutral";
-  sp500Price: number;
-  ma200: number;
-  ma50: number;
-}
-
-interface CriterionResult {
-  pass: boolean;
-  score: number;
-  value: string;
-  detail: string;
-}
-
-export interface StockResult {
-  symbol: string;
-  name: string;
-  price: number;
-  marketCap: number;
-  compositeScore: number;
-  C: CriterionResult;
-  A: CriterionResult;
-  N: CriterionResult;
-  S: CriterionResult;
-  L: CriterionResult;
-  I: CriterionResult;
-  M: CriterionResult;
-  scannedAt?: string;
-}
-
-function toStockResult(cached: CachedResult): StockResult {
-  return { ...cached };
-}
+import type { MarketDirection, StockResult } from "@/types";
 
 export default function Home() {
   const [results, setResults] = useState<StockResult[]>([]);
@@ -84,7 +51,7 @@ export default function Home() {
     // Restore cached results
     const cachedResults = getCachedResults();
     if (cachedResults.length > 0) {
-      setResults(cachedResults.map(toStockResult));
+      setResults(cachedResults);
       const cache = readCache();
       if (cache.marketTimestamp) {
         setTimestamp(cache.marketTimestamp);
@@ -121,7 +88,7 @@ export default function Home() {
           // Everything is fresh — just display cached results
           const cachedMarket = getCachedMarket();
           if (cachedMarket) setMarket(cachedMarket);
-          setResults(freshResults.map(toStockResult));
+          setResults(freshResults as StockResult[]);
           setTimestamp(new Date().toISOString());
           setLoading(false);
           updateCacheInfo();
@@ -131,7 +98,7 @@ export default function Home() {
 
       // Start with fresh cached results (they'll be merged with new ones)
       if (freshResults.length > 0) {
-        setResults(freshResults.map(toStockResult));
+        setResults(freshResults as StockResult[]);
         for (const r of freshResults) {
           mergedSymbolsRef.current.add(r.symbol);
         }

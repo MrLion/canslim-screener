@@ -1,11 +1,6 @@
 "use client";
 
-interface MarketDirection {
-  trend: "uptrend" | "downtrend" | "neutral";
-  sp500Price: number;
-  ma200: number;
-  ma50: number;
-}
+import type { MarketDirection } from "@/types";
 
 export default function MarketStatus({ market }: { market: MarketDirection | null }) {
   if (!market) return null;

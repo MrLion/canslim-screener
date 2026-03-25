@@ -81,7 +81,12 @@ function writeCache(data: ScanCacheData) {
 
 /** Check if a cached result is older than the stale threshold */
 export function isStale(result: CachedResult): boolean {
-  const age = Date.now() - new Date(result.scannedAt).getTime();
+  return isStaleTimestamp(result.scannedAt);
+}
+
+/** Check if a timestamp is older than the stale threshold */
+export function isStaleTimestamp(isoTimestamp: string): boolean {
+  const age = Date.now() - new Date(isoTimestamp).getTime();
   return age > STALE_MS;
 }
 

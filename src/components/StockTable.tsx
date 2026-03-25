@@ -2,44 +2,8 @@
 
 import { Fragment, useState } from "react";
 import ScoreBar from "./ScoreBar";
-
-interface CriterionResult {
-  pass: boolean;
-  score: number;
-  value: string;
-  detail: string;
-}
-
-interface CANSLIMResult {
-  symbol: string;
-  name: string;
-  price: number;
-  marketCap: number;
-  compositeScore: number;
-  C: CriterionResult;
-  A: CriterionResult;
-  N: CriterionResult;
-  S: CriterionResult;
-  L: CriterionResult;
-  I: CriterionResult;
-  M: CriterionResult;
-  scannedAt?: string;
-}
-
-function timeAgo(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(ms / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
-
-function isStale(iso: string): boolean {
-  return Date.now() - new Date(iso).getTime() > 24 * 60 * 60 * 1000;
-}
+import { timeAgo, isStaleTimestamp } from "@/lib/scan-cache";
+import type { StockResult, CriterionResult } from "@/types";
 
 type SortKey = "compositeScore" | "C" | "A" | "N" | "S" | "L" | "I" | "symbol" | "price";
 
@@ -71,7 +35,7 @@ function PassFail({ result }: { result: CriterionResult }) {
   );
 }
 
-export default function StockTable({ results }: { results: CANSLIMResult[] }) {
+export default function StockTable({ results }: { results: StockResult[] }) {
   const [sortKey, setSortKey] = useState<SortKey>("compositeScore");
   const [sortAsc, setSortAsc] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -129,11 +93,11 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
     </th>
   );
 
-  const passCount = (r: CANSLIMResult) =>
+  const passCount = (r: StockResult) =>
     CRITERIA.filter((c) => r[c].pass).length;
 
   /* Mobile card for a single stock */
-  const MobileCard = ({ stock, idx }: { stock: CANSLIMResult; idx: number }) => {
+  const MobileCard = ({ stock, idx }: { stock: StockResult; idx: number }) => {
     const isExpanded = expanded === stock.symbol;
     return (
       <div
@@ -144,7 +108,7 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
           <div className="flex items-center gap-2 min-w-0">
             <span className="text-[10px] text-gray-600 w-5 shrink-0">{idx + 1}</span>
             <span className="font-mono font-bold text-white text-sm">{stock.symbol}</span>
-            {stock.scannedAt && isStale(stock.scannedAt) && (
+            {stock.scannedAt && isStaleTimestamp(stock.scannedAt) && (
               <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/60 shrink-0" />
             )}
           </div>
@@ -201,8 +165,8 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
             <div className="mt-2 flex items-center gap-3 text-[10px] text-gray-600">
               <span>Mkt Cap: ${(stock.marketCap / 1e9).toFixed(1)}B</span>
               {stock.scannedAt && (
-                <span className={`flex items-center gap-1 ${isStale(stock.scannedAt) ? "text-yellow-600" : "text-gray-700"}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isStale(stock.scannedAt) ? "bg-yellow-500/60" : "bg-green-500/40"}`} />
+                <span className={`flex items-center gap-1 ${isStaleTimestamp(stock.scannedAt) ? "text-yellow-600" : "text-gray-700"}`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${isStaleTimestamp(stock.scannedAt) ? "bg-yellow-500/60" : "bg-green-500/40"}`} />
                   {timeAgo(stock.scannedAt)}
                 </span>
               )}
@@ -263,7 +227,7 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
                   <td className="px-3 py-2 text-gray-500 text-xs">
                     <div className="flex items-center gap-1">
                       {idx + 1}
-                      {stock.scannedAt && isStale(stock.scannedAt) && (
+                      {stock.scannedAt && isStaleTimestamp(stock.scannedAt) && (
                         <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/60" title={`Stale — scanned ${timeAgo(stock.scannedAt)}`} />
                       )}
                     </div>
@@ -340,8 +304,8 @@ export default function StockTable({ results }: { results: CANSLIMResult[] }) {
                           Market Cap: ${(stock.marketCap / 1e9).toFixed(1)}B
                         </span>
                         {stock.scannedAt && (
-                          <span className={`flex items-center gap-1 ${isStale(stock.scannedAt) ? "text-yellow-600" : "text-gray-700"}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isStale(stock.scannedAt) ? "bg-yellow-500/60" : "bg-green-500/40"}`} />
+                          <span className={`flex items-center gap-1 ${isStaleTimestamp(stock.scannedAt) ? "text-yellow-600" : "text-gray-700"}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isStaleTimestamp(stock.scannedAt) ? "bg-yellow-500/60" : "bg-green-500/40"}`} />
                             Scanned {timeAgo(stock.scannedAt)}
                           </span>
                         )}
