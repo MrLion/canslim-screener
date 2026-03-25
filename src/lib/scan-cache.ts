@@ -182,6 +182,23 @@ export function cacheResults(results: CachedResult[], market?: MarketCache) {
   writeCache(cache);
 }
 
+/** Flush pending cache writes in bulk */
+export function flushCacheWrites(
+  pending: CachedResult[],
+  market?: MarketCache
+) {
+  if (pending.length === 0 && !market) return;
+  const cache = readCache();
+  for (const r of pending) {
+    cache.results[r.symbol] = r;
+  }
+  if (market) {
+    cache.market = market;
+    cache.marketTimestamp = new Date().toISOString();
+  }
+  writeCache(cache);
+}
+
 /** Clear entire cache */
 export function clearCache() {
   try {
