@@ -20,12 +20,12 @@ vi.mock("@/lib/sse-parser", () => ({
 
 import { useScreener } from "@/hooks/useScreener";
 import { getCachedResults, getCachedMarket, getCacheStats } from "@/lib/scan-cache";
-import { parseSSEStream } from "@/lib/sse-parser";
+
 
 const mockGetCachedResults = vi.mocked(getCachedResults);
 const mockGetCachedMarket = vi.mocked(getCachedMarket);
 const mockGetCacheStats = vi.mocked(getCacheStats);
-const mockParseSSEStream = vi.mocked(parseSSEStream);
+
 
 describe("useScreener", () => {
   beforeEach(() => {

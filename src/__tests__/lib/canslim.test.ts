@@ -9,22 +9,21 @@ vi.mock("@/lib/yahoo", () => ({
   getSP500History: vi.fn(),
 }));
 
-import { scoreStock, getMarketDirection, screenBatch } from "@/lib/canslim";
+import { scoreStock, getMarketDirection } from "@/lib/canslim";
 import type { MarketDirection } from "@/types";
 import {
-  getQuotes,
   getEarnings,
   getHistoricalPrices,
   getInstitutionalHoldings,
   getSP500History,
 } from "@/lib/yahoo";
-import type { StockQuote, EarningsData, InstitutionalData } from "@/lib/yahoo";
+import type { StockQuote, EarningsData } from "@/lib/yahoo";
 
 const mockGetEarnings = vi.mocked(getEarnings);
 const mockGetHistoricalPrices = vi.mocked(getHistoricalPrices);
 const mockGetInstitutionalHoldings = vi.mocked(getInstitutionalHoldings);
 const mockGetSP500History = vi.mocked(getSP500History);
-const mockGetQuotes = vi.mocked(getQuotes);
+
 
 function makeQuote(overrides: Partial<StockQuote> = {}): StockQuote {
   return {

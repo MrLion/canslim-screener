@@ -88,9 +88,9 @@ export async function getEarnings(symbol: string): Promise<EarningsData | null> 
         period2: new Date(),
         module: "financials" as const,
       }).catch((e: unknown) => { console.error('[yahoo] fundamentalsTimeSeries failed', { symbol, error: e instanceof Error ? e.message : String(e) }); return null; }),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       yf.quoteSummary(symbol, {
         modules: ["earnings"],
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       }).catch((e: unknown) => { console.error('[yahoo] quoteSummary(earnings) failed', { symbol, error: e instanceof Error ? e.message : String(e) }); return null; }) as Promise<any>,
     ]);
 

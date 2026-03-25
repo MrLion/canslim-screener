@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import {
   readCache,
   isStale,
@@ -8,7 +8,7 @@ import {
   getCachedResults,
   partitionTickers,
   cacheStockResult,
-  cacheMarket,
+
   clearCache,
   getCacheStats,
   flushCacheWrites,
