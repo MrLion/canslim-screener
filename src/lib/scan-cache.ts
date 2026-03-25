@@ -8,7 +8,7 @@
  */
 
 const STORAGE_KEY = "canslim-scan-cache";
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface CachedResult {
