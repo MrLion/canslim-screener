@@ -127,7 +127,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
     return selectedCount > 0 && selectedCount < groups.length;
   };
 
-  const getSelectedTickers = (): string[] => {
+  const getSelectedTickers = useMemo((): string[] => {
     if (!data) return [];
     const tickers: string[] = [];
     for (const groups of Object.values(data.sectors)) {
@@ -138,7 +138,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
       }
     }
     return [...new Set(tickers)];
-  };
+  }, [data, selectedGroups]);
 
   const getSectorTickerCount = (sector: string): number => {
     if (!data) return 0;
@@ -175,7 +175,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
       .filter((s) => s.groups.length > 0);
   }, [data, searchQuery, hideEmpty]);
 
-  const selectedTickers = getSelectedTickers();
+  const selectedTickers = getSelectedTickers;
   const totalSelectedGroups = selectedGroups.size;
   const totalSelectedTickers = selectedTickers.length;
   const allSectorNames = data ? Object.keys(data.sectors).sort() : [];

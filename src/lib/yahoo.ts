@@ -63,8 +63,8 @@ export async function getQuotes(symbols: string[]): Promise<Map<string, StockQuo
         };
         cache.set(`quote:${q.symbol}`, mapped);
         results.set(q.symbol, mapped);
-      } catch {
-        // skip failed quote
+      } catch (e) {
+        console.error('[yahoo] getQuotes failed', { symbol: sym, error: e instanceof Error ? e.message : String(e) });
       }
     });
     await Promise.allSettled(quotePromises);
@@ -87,11 +87,11 @@ export async function getEarnings(symbol: string): Promise<EarningsData | null> 
         period1: new Date(Date.now() - 2 * 365 * 24 * 60 * 60 * 1000), // 2 years back
         period2: new Date(),
         module: "financials" as const,
-      }).catch(() => null),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }).catch((e: unknown) => { console.error('[yahoo] fundamentalsTimeSeries failed', { symbol, error: e instanceof Error ? e.message : String(e) }); return null; }),
       yf.quoteSummary(symbol, {
         modules: ["earnings"],
-      }).catch(() => null) as Promise<any>,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      }).catch((e: unknown) => { console.error('[yahoo] quoteSummary(earnings) failed', { symbol, error: e instanceof Error ? e.message : String(e) }); return null; }) as Promise<any>,
     ]);
 
     const quarterlyEps: { date: string; actual: number }[] = [];
@@ -136,25 +136,30 @@ export async function getEarnings(symbol: string): Promise<EarningsData | null> 
     }
 
     const data: EarningsData = { quarterlyEps, annualEps };
-    cache.set(cacheKey, data);
+    // Only cache if we got actual data — avoid poisoning cache with empty results for 4hrs
+    if (quarterlyEps.length > 0 || annualEps.length > 0) {
+      cache.set(cacheKey, data);
+    }
     return data;
-  } catch {
+  } catch (e) {
+    console.error('[yahoo] getEarnings failed', { symbol, error: e instanceof Error ? e.message : String(e) });
     return null;
   }
 }
 
 export async function getHistoricalPrices(
   symbol: string,
-  months: number = 12
+  /** Number of months of history to fetch */
+  periodMonths: number = 12
 ): Promise<{ date: Date; close: number; volume: number }[]> {
-  const cacheKey = `hist:${symbol}:${months}`;
+  const cacheKey = `hist:${symbol}:${periodMonths}`;
   const cached = cache.get<{ date: Date; close: number; volume: number }[]>(cacheKey);
   if (cached) return cached;
 
   try {
     const end = new Date();
     const start = new Date();
-    start.setMonth(start.getMonth() - months);
+    start.setMonth(start.getMonth() - periodMonths);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = await yf.chart(symbol, {
@@ -174,7 +179,8 @@ export async function getHistoricalPrices(
 
     cache.set(cacheKey, prices);
     return prices;
-  } catch {
+  } catch (e) {
+    console.error('[yahoo] getHistoricalPrices failed', { symbol, error: e instanceof Error ? e.message : String(e) });
     return [];
   }
 }
@@ -194,7 +200,8 @@ export async function getInstitutionalHoldings(symbol: string): Promise<Institut
     const data: InstitutionalData = { institutionPercentHeld: pct };
     cache.set(cacheKey, data);
     return data;
-  } catch {
+  } catch (e) {
+    console.error('[yahoo] getInstitutionalHoldings failed', { symbol, error: e instanceof Error ? e.message : String(e) });
     return null;
   }
 }
@@ -215,7 +222,8 @@ export async function getSectorIndustry(symbol: string): Promise<{ sector: strin
     };
     cache.set(cacheKey, data, 86400); // 24hr cache for sector data
     return data;
-  } catch {
+  } catch (e) {
+    console.error('[yahoo] getSectorIndustry failed', { symbol, error: e instanceof Error ? e.message : String(e) });
     return { sector: "Unknown", industry: "Unknown" };
   }
 }

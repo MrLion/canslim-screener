@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.4.0] - 2025-03-25
+
+### Added
+- **Shared type system** — centralized `CriterionResult`, `CANSLIMResult`, `MarketDirection`, `StockResult` types in `src/types/index.ts`, eliminating duplicate interface declarations across 4 files
+- **SSE parser module** — extracted `parseSSEStream()` AsyncGenerator from page.tsx into `src/lib/sse-parser.ts` with proper reader cleanup
+- **useScreener hook** — extracted all state management, data fetching, and cache logic from page.tsx into `src/hooks/useScreener.ts`
+- **`flushCacheWrites()` helper** — dedicated cache flush function in scan-cache.ts
+- **`isStaleTimestamp()` utility** — string-based staleness check for ISO timestamps
+- **Error logging** — all 7 Yahoo Finance catch blocks now log structured errors via `console.error`
+- **Failed stock count** — SSE `done` event now includes `{ failed }` count, displayed in UI
+- **Test suite** — 75 tests across 9 files covering canslim scoring, scan-cache, SSE parser, tickers, useScreener hook, Yahoo data layer, and 3 UI components
+- **TODOS.md** — project task tracking with P2 item for C criterion data source
+
+### Fixed
+- **Cache poisoning** — `getEarnings()` no longer caches empty results, preventing 4-hour stale entries
+- **Resource leak** — SSE parser releases reader lock in `finally` block on abort/error
+- **Unmount cleanup** — inflight scans are aborted when useScreener unmounts
+- **Timestamp consistency** — stock results use a single timestamp for both UI state and cache writes
+
+### Changed
+- `page.tsx` reduced from ~450 lines to ~160-line render shell
+- `CACHE_VERSION` bumped from 1 to 2 (auto-clears old caches on deploy)
+- `getHistoricalPrices` parameter renamed from `months` to `periodMonths` for clarity
+- `totalGroups` in industries API now computed dynamically instead of hardcoded 197
+- `getSelectedTickers` in IndustryPicker memoized with `useMemo`
+
 ## [0.3.0] - 2026-03-14
 
 ### Added

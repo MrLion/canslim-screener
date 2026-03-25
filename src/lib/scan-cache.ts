@@ -8,7 +8,7 @@
  */
 
 const STORAGE_KEY = "canslim-scan-cache";
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const STALE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export interface CachedResult {
@@ -81,7 +81,12 @@ function writeCache(data: ScanCacheData) {
 
 /** Check if a cached result is older than the stale threshold */
 export function isStale(result: CachedResult): boolean {
-  const age = Date.now() - new Date(result.scannedAt).getTime();
+  return isStaleTimestamp(result.scannedAt);
+}
+
+/** Check if a timestamp is older than the stale threshold */
+export function isStaleTimestamp(isoTimestamp: string): boolean {
+  const age = Date.now() - new Date(isoTimestamp).getTime();
   return age > STALE_MS;
 }
 
@@ -168,6 +173,23 @@ export function cacheMarket(market: MarketCache) {
 export function cacheResults(results: CachedResult[], market?: MarketCache) {
   const cache = readCache();
   for (const r of results) {
+    cache.results[r.symbol] = r;
+  }
+  if (market) {
+    cache.market = market;
+    cache.marketTimestamp = new Date().toISOString();
+  }
+  writeCache(cache);
+}
+
+/** Flush pending cache writes in bulk */
+export function flushCacheWrites(
+  pending: CachedResult[],
+  market?: MarketCache
+) {
+  if (pending.length === 0 && !market) return;
+  const cache = readCache();
+  for (const r of pending) {
     cache.results[r.symbol] = r;
   }
   if (market) {
