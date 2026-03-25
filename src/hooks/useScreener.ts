@@ -52,7 +52,7 @@ export function useScreener(): ScreenerState & ScreenerActions {
   const abortRef = useRef<AbortController | null>(null);
   const mergedSymbolsRef = useRef<Set<string>>(new Set());
 
-  // Load cache stats on mount
+  // Load cache stats on mount; abort inflight scan on unmount
   useEffect(() => {
     const stats = getCacheStats();
     setCacheInfo(stats);
@@ -66,6 +66,10 @@ export function useScreener(): ScreenerState & ScreenerActions {
       const cache = readCache();
       if (cache.marketTimestamp) setTimestamp(cache.marketTimestamp);
     }
+
+    return () => {
+      abortRef.current?.abort();
+    };
   }, []);
 
   const updateCacheInfo = useCallback(() => {
@@ -139,9 +143,10 @@ export function useScreener(): ScreenerState & ScreenerActions {
               cacheMarket(data as MarketCache);
               break;
             case "stock": {
+              const now = new Date().toISOString();
               const stockWithTimestamp: StockResult = {
                 ...(data as StockResult),
-                scannedAt: new Date().toISOString(),
+                scannedAt: now,
               };
               setResults((prev) => {
                 const existing = new Map(prev.map((r) => [r.symbol, r]));
@@ -152,7 +157,7 @@ export function useScreener(): ScreenerState & ScreenerActions {
               });
               pendingCacheWrites.push({
                 ...(data as CachedResult),
-                scannedAt: new Date().toISOString(),
+                scannedAt: now,
               });
               if (pendingCacheWrites.length >= 10) {
                 flushCacheWrites(pendingCacheWrites, marketData);
