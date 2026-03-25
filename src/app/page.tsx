@@ -16,6 +16,7 @@ export default function Home() {
     timestamp,
     cacheInfo,
     skippedFresh,
+    failedCount,
     handleScan,
     handleRescanAll,
     handleClearCache,
@@ -39,7 +40,7 @@ export default function Home() {
               <span className="text-xs text-gray-600">
                 {loading
                   ? `${progress.scanned}/${progress.total} scanned`
-                  : `${results.length} stocks scored`}
+                  : `${results.length} stocks scored${failedCount > 0 ? `, ${failedCount} failed` : ""}`}
                 {timestamp &&
                   ` | ${new Date(timestamp).toLocaleTimeString()}`}
               </span>

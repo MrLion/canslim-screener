@@ -30,6 +30,7 @@ export interface ScreenerState {
     newestScan: string | null;
   } | null;
   skippedFresh: number;
+  failedCount: number;
 }
 
 export interface ScreenerActions {
@@ -47,6 +48,7 @@ export function useScreener(): ScreenerState & ScreenerActions {
   const [timestamp, setTimestamp] = useState<string | null>(null);
   const [cacheInfo, setCacheInfo] = useState<ScreenerState["cacheInfo"]>(null);
   const [skippedFresh, setSkippedFresh] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const mergedSymbolsRef = useRef<Set<string>>(new Set());
 
@@ -79,6 +81,7 @@ export function useScreener(): ScreenerState & ScreenerActions {
       setLoading(true);
       setError(null);
       setSkippedFresh(0);
+      setFailedCount(0);
       mergedSymbolsRef.current = new Set();
 
       let tickersToScan: string[] | null = null;
@@ -160,9 +163,12 @@ export function useScreener(): ScreenerState & ScreenerActions {
             case "progress":
               setProgress(data as { scanned: number; total: number });
               break;
-            case "done":
-              setTimestamp((data as { timestamp: string }).timestamp);
+            case "done": {
+              const doneData = data as { timestamp: string; failed?: number };
+              setTimestamp(doneData.timestamp);
+              if (doneData.failed) setFailedCount(doneData.failed);
               break;
+            }
             case "error":
               setError((data as { message: string }).message);
               break;
@@ -217,6 +223,7 @@ export function useScreener(): ScreenerState & ScreenerActions {
     timestamp,
     cacheInfo,
     skippedFresh,
+    failedCount,
     handleScan,
     handleRescanAll,
     handleClearCache,

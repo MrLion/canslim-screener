@@ -37,12 +37,14 @@ export async function GET(request: Request) {
         // Process tickers in batches of 10 concurrently
         const BATCH_SIZE = 10;
         let scanned = 0;
+        let failed = 0;
 
         for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
           const batch = tickers.slice(i, i + BATCH_SIZE);
           const results = await screenBatch(batch, sp500Prices, market);
 
           scanned += batch.length;
+          failed += batch.length - results.length;
 
           // Send each result as it comes
           for (const result of results) {
@@ -52,7 +54,7 @@ export async function GET(request: Request) {
           send("progress", { scanned, total: tickers.length });
         }
 
-        send("done", { scanned, timestamp: new Date().toISOString() });
+        send("done", { scanned, failed, timestamp: new Date().toISOString() });
       } catch (error) {
         console.error("Screen error:", error);
         send("error", { message: "Failed to run screener" });
