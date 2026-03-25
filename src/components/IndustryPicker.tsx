@@ -306,7 +306,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
           </span>
         </label>
         {(searchQuery || hideEmpty) && (
-          <span className="text-[10px] text-gray-600">
+          <span className="text-[10px] text-gray-400">
             Showing {filteredSectors.reduce((sum, s) => sum + s.groups.length, 0)} groups
             in {filteredSectors.length} sectors
           </span>
@@ -332,16 +332,16 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
                   onClick={() => toggleSector(sector)}
                 >
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gray-600 group-hover:text-gray-400 transition-colors">
+                    <span className="text-[10px] text-gray-400 group-hover:text-gray-300 transition-colors">
                       {expandedSectors.has(sector) ? "\u25BC" : "\u25B6"}
                     </span>
                     <span className="text-xs font-semibold text-gray-300 group-hover:text-white transition-colors">
                       {sector}
                     </span>
-                    <span className="text-[10px] text-gray-600">
+                    <span className="text-[10px] text-gray-400">
                       {groups.length}
                       {sectorTickerCount > 0 && (
-                        <span className="text-gray-700"> &middot; {sectorTickerCount} stocks</span>
+                        <span className="text-gray-400"> &middot; {sectorTickerCount} stocks</span>
                       )}
                     </span>
                   </div>
@@ -352,7 +352,7 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
                           ? deselectAllInSector(sector, groups)
                           : selectAllInSector(sector, groups)
                       }
-                      className="text-[10px] text-gray-600 hover:text-blue-400 transition-colors"
+                      className="text-[10px] text-gray-400 hover:text-blue-400 transition-colors"
                     >
                       {isSectorFullySelected(sector, groups) ? "Deselect all" : "Select all"}
                     </button>
@@ -387,11 +387,11 @@ export default function IndustryPicker({ onScan, loading }: IndustryPickerProps)
                             {group.name}
                           </span>
                           {group.count > 0 ? (
-                            <span className="text-[10px] text-gray-700">
+                            <span className="text-[10px] text-gray-400">
                               ({group.count})
                             </span>
                           ) : (
-                            <span className="text-[10px] text-gray-800 italic">
+                            <span className="text-[10px] text-gray-500 italic">
                               empty
                             </span>
                           )}
