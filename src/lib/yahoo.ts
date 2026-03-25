@@ -149,16 +149,17 @@ export async function getEarnings(symbol: string): Promise<EarningsData | null> 
 
 export async function getHistoricalPrices(
   symbol: string,
-  months: number = 12
+  /** Number of months of history to fetch */
+  periodMonths: number = 12
 ): Promise<{ date: Date; close: number; volume: number }[]> {
-  const cacheKey = `hist:${symbol}:${months}`;
+  const cacheKey = `hist:${symbol}:${periodMonths}`;
   const cached = cache.get<{ date: Date; close: number; volume: number }[]>(cacheKey);
   if (cached) return cached;
 
   try {
     const end = new Date();
     const start = new Date();
-    start.setMonth(start.getMonth() - months);
+    start.setMonth(start.getMonth() - periodMonths);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = await yf.chart(symbol, {

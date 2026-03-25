@@ -29,7 +29,7 @@ export async function GET() {
 
   return Response.json({
     sectors: map,
-    totalGroups: 197,
+    totalGroups: sectors.reduce((sum, s) => sum + s.groups.length, 0),
     totalTickers: ALL_TICKERS.length,
     tickersAssigned: sectors.reduce(
       (sum, s) => sum + s.groups.reduce((gs, g) => gs + g.tickers.length, 0),

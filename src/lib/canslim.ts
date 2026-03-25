@@ -254,7 +254,7 @@ export async function scoreStock(
   };
 }
 
-// Screen a batch of tickers
+// Screen a batch of tickers (called with BATCH_SIZE=10 from screen/route.ts)
 export async function screenBatch(
   symbols: string[],
   sp500Prices: { date: Date; close: number }[],
