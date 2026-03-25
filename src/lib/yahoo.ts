@@ -136,7 +136,10 @@ export async function getEarnings(symbol: string): Promise<EarningsData | null> 
     }
 
     const data: EarningsData = { quarterlyEps, annualEps };
-    cache.set(cacheKey, data);
+    // Only cache if we got actual data — avoid poisoning cache with empty results for 4hrs
+    if (quarterlyEps.length > 0 || annualEps.length > 0) {
+      cache.set(cacheKey, data);
+    }
     return data;
   } catch (e) {
     console.error('[yahoo] getEarnings failed', { symbol, error: e instanceof Error ? e.message : String(e) });
