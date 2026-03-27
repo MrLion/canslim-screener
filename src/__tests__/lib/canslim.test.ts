@@ -7,22 +7,27 @@ vi.mock("@/lib/yahoo", () => ({
   getHistoricalPrices: vi.fn(),
   getInstitutionalHoldings: vi.fn(),
   getSP500History: vi.fn(),
+  filterValidTickers: vi.fn(),
 }));
 
-import { scoreStock, getMarketDirection } from "@/lib/canslim";
+import { scoreStock, getMarketDirection, screenBatch } from "@/lib/canslim";
 import type { MarketDirection } from "@/types";
 import {
+  getQuotes,
   getEarnings,
   getHistoricalPrices,
   getInstitutionalHoldings,
   getSP500History,
+  filterValidTickers,
 } from "@/lib/yahoo";
 import type { StockQuote, EarningsData } from "@/lib/yahoo";
 
+const mockGetQuotes = vi.mocked(getQuotes);
 const mockGetEarnings = vi.mocked(getEarnings);
 const mockGetHistoricalPrices = vi.mocked(getHistoricalPrices);
 const mockGetInstitutionalHoldings = vi.mocked(getInstitutionalHoldings);
 const mockGetSP500History = vi.mocked(getSP500History);
+const mockFilterValidTickers = vi.mocked(filterValidTickers);
 
 
 function makeQuote(overrides: Partial<StockQuote> = {}): StockQuote {
@@ -259,6 +264,110 @@ describe("canslim scoring", () => {
 
       const result = await getMarketDirection();
       expect(result.trend).toBe("neutral");
+    });
+  });
+
+  describe("screenBatch", () => {
+    it("returns separate invalidCount and errorCount", async () => {
+      mockFilterValidTickers.mockReturnValue({
+        valid: ["AAPL", "BADQUOTE"],
+        invalid: ["HESAY", "BYDDF"],  // 2 pre-filtered invalid
+      });
+
+      const quotesMap = new Map();
+      quotesMap.set("AAPL", makeQuote());
+      // BADQUOTE not in map → newly discovered invalid
+      mockGetQuotes.mockResolvedValue(quotesMap);
+
+      mockGetEarnings.mockResolvedValue(makeEarnings());
+      mockGetHistoricalPrices.mockResolvedValue(makePrices(200, 180));
+      mockGetInstitutionalHoldings.mockResolvedValue({ institutionPercentHeld: 0.5 });
+
+      const result = await screenBatch(
+        ["AAPL", "HESAY", "BYDDF", "BADQUOTE"],
+        makePrices(200, 5400),
+        market
+      );
+
+      expect(result.results).toHaveLength(1); // only AAPL scored
+      expect(result.invalidCount).toBe(3);    // 2 pre-filtered + 1 no quote
+      expect(result.errorCount).toBe(0);
+    });
+
+    it("counts scoring errors separately from invalid tickers", async () => {
+      mockFilterValidTickers.mockReturnValue({
+        valid: ["AAPL", "ERRSTOCK"],
+        invalid: [],
+      });
+
+      const quotesMap = new Map();
+      quotesMap.set("AAPL", makeQuote());
+      quotesMap.set("ERRSTOCK", makeQuote({ symbol: "ERRSTOCK" }));
+      mockGetQuotes.mockResolvedValue(quotesMap);
+
+      // AAPL succeeds
+      mockGetEarnings
+        .mockResolvedValueOnce(makeEarnings())
+        .mockRejectedValueOnce(new Error("API error")); // ERRSTOCK fails scoring
+      mockGetHistoricalPrices.mockResolvedValue(makePrices(200, 180));
+      mockGetInstitutionalHoldings.mockResolvedValue({ institutionPercentHeld: 0.5 });
+
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      const result = await screenBatch(
+        ["AAPL", "ERRSTOCK"],
+        makePrices(200, 5400),
+        market
+      );
+
+      expect(result.results).toHaveLength(1);
+      expect(result.invalidCount).toBe(0);
+      expect(result.errorCount).toBe(1);
+      consoleSpy.mockRestore();
+    });
+
+    it("counts price=0 quotes as invalid (missing from map after getQuotes filters them)", async () => {
+      mockFilterValidTickers.mockReturnValue({
+        valid: ["AAPL", "ZEROPRICE"],
+        invalid: [],
+      });
+
+      // ZEROPRICE is not in the map — getQuotes filtered it out due to price=0
+      const quotesMap = new Map();
+      quotesMap.set("AAPL", makeQuote());
+      mockGetQuotes.mockResolvedValue(quotesMap);
+
+      mockGetEarnings.mockResolvedValue(makeEarnings());
+      mockGetHistoricalPrices.mockResolvedValue(makePrices(200, 180));
+      mockGetInstitutionalHoldings.mockResolvedValue({ institutionPercentHeld: 0.5 });
+
+      const result = await screenBatch(
+        ["AAPL", "ZEROPRICE"],
+        makePrices(200, 5400),
+        market
+      );
+
+      expect(result.results).toHaveLength(1);
+      expect(result.invalidCount).toBe(1);
+      expect(result.errorCount).toBe(0);
+    });
+
+    it("returns empty results when all tickers are pre-filtered invalid", async () => {
+      mockFilterValidTickers.mockReturnValue({
+        valid: [],
+        invalid: ["HESAY", "BYDDF", "LVMUY"],
+      });
+
+      mockGetQuotes.mockResolvedValue(new Map());
+
+      const result = await screenBatch(
+        ["HESAY", "BYDDF", "LVMUY"],
+        makePrices(200, 5400),
+        market
+      );
+
+      expect(result.results).toHaveLength(0);
+      expect(result.invalidCount).toBe(3);
+      expect(result.errorCount).toBe(0);
     });
   });
 });
