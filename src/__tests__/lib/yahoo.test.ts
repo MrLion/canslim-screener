@@ -100,15 +100,16 @@ describe("yahoo.ts", () => {
       expect(invalid).toContain("ZEROPRICE");
     });
 
-    it("marks ticker as invalid when quote throws", async () => {
+    it("does NOT cache as invalid when quote throws (transient error — retry next scan)", async () => {
       const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-      mockQuote.mockRejectedValue(new Error("Not Found"));
+      mockQuote.mockRejectedValue(new Error("rate limited"));
 
-      await getQuotes(["BADTICKER2"]);
+      await getQuotes(["NETERR"]);
 
-      const { valid, invalid } = filterValidTickers(["BADTICKER2"]);
-      expect(invalid).toContain("BADTICKER2");
-      expect(valid).toHaveLength(0);
+      // Transient error should not poison the invalid cache — ticker retries next scan
+      const { valid, invalid } = filterValidTickers(["NETERR"]);
+      expect(invalid).not.toContain("NETERR");
+      expect(valid).toContain("NETERR");
       consoleSpy.mockRestore();
     });
   });

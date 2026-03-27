@@ -71,8 +71,9 @@ export async function getQuotes(symbols: string[]): Promise<Map<string, StockQuo
         cache.set(`quote:${q.symbol}`, mapped);
         results.set(q.symbol, mapped);
       } catch (e) {
+        // Transient error (rate limit, timeout, network) — do NOT cache as invalid.
+        // Only null/no-symbol responses are permanent "not on Yahoo" signals.
         console.error('[yahoo] getQuotes failed', { symbol: sym, error: e instanceof Error ? e.message : String(e) });
-        cache.set(`invalid:${sym}`, true, 86400); // 24hr TTL
       }
     });
     await Promise.allSettled(quotePromises);

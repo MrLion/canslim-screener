@@ -36,6 +36,7 @@ export async function GET(request: Request) {
 
         // Process tickers in batches of 10 concurrently
         const BATCH_SIZE = 10;
+        const BATCH_DELAY_MS = 200; // ~50 req/sec — avoids Yahoo Finance rate limiting
         let scanned = 0;
         let invalid = 0;
         let errors = 0;
@@ -54,6 +55,10 @@ export async function GET(request: Request) {
           }
 
           send("progress", { scanned, total: tickers.length, invalid });
+
+          if (i + BATCH_SIZE < tickers.length) {
+            await new Promise((r) => setTimeout(r, BATCH_DELAY_MS));
+          }
         }
 
         send("done", { scanned, invalid, errors, timestamp: new Date().toISOString() });
