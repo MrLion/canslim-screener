@@ -31,6 +31,7 @@ export interface ScreenerState {
   } | null;
   skippedFresh: number;
   failedCount: number;
+  invalidCount: number;
 }
 
 export interface ScreenerActions {
@@ -49,6 +50,7 @@ export function useScreener(): ScreenerState & ScreenerActions {
   const [cacheInfo, setCacheInfo] = useState<ScreenerState["cacheInfo"]>(null);
   const [skippedFresh, setSkippedFresh] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
+  const [invalidCount, setInvalidCount] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
   const mergedSymbolsRef = useRef<Set<string>>(new Set());
 
@@ -86,6 +88,7 @@ export function useScreener(): ScreenerState & ScreenerActions {
       setError(null);
       setSkippedFresh(0);
       setFailedCount(0);
+      setInvalidCount(0);
       mergedSymbolsRef.current = new Set();
 
       let tickersToScan: string[] | null = null;
@@ -165,13 +168,17 @@ export function useScreener(): ScreenerState & ScreenerActions {
               }
               break;
             }
-            case "progress":
-              setProgress(data as { scanned: number; total: number });
+            case "progress": {
+              const progData = data as { scanned: number; total: number; invalid?: number };
+              setProgress({ scanned: progData.scanned, total: progData.total });
+              if (progData.invalid != null) setInvalidCount(progData.invalid);
               break;
+            }
             case "done": {
-              const doneData = data as { timestamp: string; failed?: number };
+              const doneData = data as { timestamp: string; invalid?: number; errors?: number };
               setTimestamp(doneData.timestamp);
-              if (doneData.failed) setFailedCount(doneData.failed);
+              if (doneData.errors) setFailedCount(doneData.errors);
+              if (doneData.invalid != null) setInvalidCount(doneData.invalid);
               break;
             }
             case "error":
@@ -229,6 +236,7 @@ export function useScreener(): ScreenerState & ScreenerActions {
     cacheInfo,
     skippedFresh,
     failedCount,
+    invalidCount,
     handleScan,
     handleRescanAll,
     handleClearCache,
