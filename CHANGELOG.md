@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.4.1.0] - 2026-03-27
+
+### Added
+- **Invalid ticker validation** — `getQuotes()` now caches known-invalid tickers (null/zero-price) with a 24-hour TTL, preventing redundant Yahoo Finance calls on repeat scans of IBD industry groups (~2,044 tickers, ~1,100 OTC/ADR symbols)
+- **`filterValidTickers()`** — new exported function partitions ticker lists into known-invalid vs potentially-valid before API calls
+- **`ScreenBatchResult` type** — `screenBatch()` now returns `{ results, invalidCount, errorCount }` instead of a plain array, separating pre-filtered invalids from actual scoring failures
+- **`/api/cache` DELETE endpoint** — flushes the server-side node-cache (quotes, earnings, invalid markers) for recovery when valid tickers are accidentally blacklisted
+- **"Clear Server Cache" button** — added to the cache status bar in the UI for one-click server cache reset
+- **`vitest.config.ts`** — committed vitest configuration (jsdom environment, `@` path alias)
+
+### Changed
+- SSE `progress` events now include `invalid` count alongside `scanned`/`total`
+- SSE `done` event now includes separate `invalid` and `errors` counts (was a single `failed` count)
+- UI status line now shows `X scored, Y failed, Z invalid skipped` when IBD groups are scanned
+- `console.error` in `screenBatch` now uses structured object format (matches `yahoo.ts` style)
+- `.gitignore` updated to exclude `.gstack/` tooling directory
+- Ticker parsing in `/api/screen` now trims whitespace from individual symbols
+
+### Removed
+- Deleted stale `docs/pipeline/` QA and pipeline-state files from the IBD groups PR
+
 ## [0.4.0] - 2025-03-25
 
 ### Added

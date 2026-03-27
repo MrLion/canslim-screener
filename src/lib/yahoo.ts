@@ -47,7 +47,10 @@ export async function getQuotes(symbols: string[]): Promise<Map<string, StockQuo
       try {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const q: any = await yf.quote(sym);
-        if (!q || !q.symbol) return;
+        if (!q || !q.symbol) {
+          cache.set(`invalid:${sym}`, true, 86400); // 24hr TTL
+          return;
+        }
         const mapped: StockQuote = {
           symbol: q.symbol,
           shortName: q.shortName || q.longName || q.symbol,
@@ -61,16 +64,40 @@ export async function getQuotes(symbols: string[]): Promise<Map<string, StockQuo
           sector: q.sector || "Unknown",
           industry: q.industry || "Unknown",
         };
+        if (mapped.regularMarketPrice === 0) {
+          cache.set(`invalid:${sym}`, true, 86400); // 24hr TTL — treat $0 price as invalid
+          return;
+        }
         cache.set(`quote:${q.symbol}`, mapped);
         results.set(q.symbol, mapped);
       } catch (e) {
         console.error('[yahoo] getQuotes failed', { symbol: sym, error: e instanceof Error ? e.message : String(e) });
+        cache.set(`invalid:${sym}`, true, 86400); // 24hr TTL
       }
     });
     await Promise.allSettled(quotePromises);
   }
 
   return results;
+}
+
+/** Flush all server-side cached data (quotes, earnings, invalid markers, etc.) */
+export function clearServerCache(): void {
+  cache.flushAll();
+}
+
+/** Partition symbols into known-invalid (cached) vs potentially-valid */
+export function filterValidTickers(symbols: string[]): { valid: string[]; invalid: string[] } {
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  for (const sym of symbols) {
+    if (cache.get(`invalid:${sym}`)) {
+      invalid.push(sym);
+    } else {
+      valid.push(sym);
+    }
+  }
+  return { valid, invalid };
 }
 
 export async function getEarnings(symbol: string): Promise<EarningsData | null> {

@@ -17,6 +17,7 @@ export default function Home() {
     cacheInfo,
     skippedFresh,
     failedCount,
+    invalidCount,
     handleScan,
     handleRescanAll,
     handleClearCache,
@@ -40,7 +41,7 @@ export default function Home() {
               <span className="text-xs text-gray-600">
                 {loading
                   ? `${progress.scanned}/${progress.total} scanned`
-                  : `${results.length} stocks scored${failedCount > 0 ? `, ${failedCount} failed` : ""}`}
+                  : `${results.length} scored${failedCount > 0 ? `, ${failedCount} failed` : ""}${invalidCount > 0 ? `, ${invalidCount} invalid skipped` : ""}`}
                 {timestamp &&
                   ` | ${new Date(timestamp).toLocaleTimeString()}`}
               </span>
@@ -112,6 +113,14 @@ export default function Home() {
                 className="text-[11px] text-gray-500 hover:text-red-400 transition-colors"
               >
                 Clear Cache
+              </button>
+              <span className="text-gray-800">|</span>
+              <button
+                onClick={() => fetch("/api/cache", { method: "DELETE" })}
+                className="text-[11px] text-gray-500 hover:text-orange-400 transition-colors"
+                title="Clears server-side quote and invalid ticker cache"
+              >
+                Clear Server Cache
               </button>
             </div>
           </div>

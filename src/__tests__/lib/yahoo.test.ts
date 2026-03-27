@@ -30,7 +30,7 @@ vi.mock("node-cache", () => {
   };
 });
 
-import { getQuotes, getEarnings, getHistoricalPrices, getInstitutionalHoldings } from "@/lib/yahoo";
+import { getQuotes, getEarnings, getHistoricalPrices, getInstitutionalHoldings, filterValidTickers } from "@/lib/yahoo";
 
 describe("yahoo.ts", () => {
   beforeEach(() => {
@@ -71,6 +71,64 @@ describe("yahoo.ts", () => {
         expect.objectContaining({ symbol: "FAIL" })
       );
       consoleSpy.mockRestore();
+    });
+
+    it("marks ticker as invalid when quote returns null", async () => {
+      mockQuote.mockResolvedValue(null);
+
+      await getQuotes(["BADDTICKER"]);
+
+      // After marking as invalid, filterValidTickers should classify it as invalid
+      const { valid, invalid } = filterValidTickers(["BADDTICKER", "OTHER"]);
+      expect(invalid).toContain("BADDTICKER");
+      expect(valid).toContain("OTHER");
+    });
+
+    it("marks ticker as invalid when regularMarketPrice is 0", async () => {
+      mockQuote.mockResolvedValue({
+        symbol: "ZEROPRICE",
+        regularMarketPrice: 0,
+        shortName: "Zero Price Co",
+      });
+
+      const result = await getQuotes(["ZEROPRICE"]);
+
+      // Should not be in the results map
+      expect(result.has("ZEROPRICE")).toBe(false);
+      // Should be marked as invalid in cache
+      const { invalid } = filterValidTickers(["ZEROPRICE"]);
+      expect(invalid).toContain("ZEROPRICE");
+    });
+
+    it("marks ticker as invalid when quote throws", async () => {
+      const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+      mockQuote.mockRejectedValue(new Error("Not Found"));
+
+      await getQuotes(["BADTICKER2"]);
+
+      const { valid, invalid } = filterValidTickers(["BADTICKER2"]);
+      expect(invalid).toContain("BADTICKER2");
+      expect(valid).toHaveLength(0);
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe("filterValidTickers", () => {
+    it("returns unknown symbols as valid (not in invalid cache)", () => {
+      const { valid, invalid } = filterValidTickers(["AAPL", "MSFT", "GOOG"]);
+      expect(valid).toEqual(["AAPL", "MSFT", "GOOG"]);
+      expect(invalid).toHaveLength(0);
+    });
+
+    it("partitions correctly after invalid tickers are cached", async () => {
+      // Mark HESAY as invalid by getting a null quote
+      mockQuote.mockResolvedValue(null);
+      await getQuotes(["HESAY"]);
+
+      // Now partition a list that includes HESAY
+      const { valid, invalid } = filterValidTickers(["AAPL", "HESAY", "MSFT"]);
+      expect(invalid).toEqual(["HESAY"]);
+      expect(valid).toEqual(["AAPL", "MSFT"]);
     });
   });
 
