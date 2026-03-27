@@ -7,6 +7,7 @@ import {
   getHistoricalPrices,
   getInstitutionalHoldings,
   getSP500History,
+  filterValidTickers,
 } from "./yahoo";
 import type { CriterionResult, CANSLIMResult, MarketDirection } from "@/types";
 
@@ -254,23 +255,38 @@ export async function scoreStock(
   };
 }
 
+export interface ScreenBatchResult {
+  results: CANSLIMResult[];
+  invalidCount: number;
+  errorCount: number;
+}
+
 // Screen a batch of tickers (called with BATCH_SIZE=10 from screen/route.ts)
 export async function screenBatch(
   symbols: string[],
   sp500Prices: { date: Date; close: number }[],
   market: MarketDirection
-): Promise<CANSLIMResult[]> {
-  const quotes = await getQuotes(symbols);
+): Promise<ScreenBatchResult> {
+  // Pre-filter known-invalid tickers
+  const { valid, invalid } = filterValidTickers(symbols);
+  let invalidCount = invalid.length;
+  let errorCount = 0;
+
+  const quotes = await getQuotes(valid);
   const results: CANSLIMResult[] = [];
 
   // Process stocks in parallel (limited concurrency)
-  const promises = symbols.map(async (symbol) => {
+  const promises = valid.map(async (symbol) => {
     const quote = quotes.get(symbol);
-    if (!quote || quote.regularMarketPrice === 0) return null;
+    if (!quote || quote.regularMarketPrice === 0) {
+      invalidCount++; // newly discovered invalid ticker
+      return null;
+    }
     try {
       return await scoreStock(symbol, quote, sp500Prices, market);
     } catch (e) {
-      console.error(`Error scoring ${symbol}:`, e);
+      console.error('[canslim] scoreStock failed', { symbol, error: e instanceof Error ? e.message : String(e) });
+      errorCount++;
       return null;
     }
   });
@@ -282,5 +298,9 @@ export async function screenBatch(
     }
   }
 
-  return results.sort((a, b) => b.compositeScore - a.compositeScore);
+  return {
+    results: results.sort((a, b) => b.compositeScore - a.compositeScore),
+    invalidCount,
+    errorCount,
+  };
 }

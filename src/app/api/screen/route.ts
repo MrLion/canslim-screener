@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   // Use filtered tickers if provided, otherwise scan all
   const tickers = tickersParam
-    ? tickersParam.split(",").filter((t) => t.trim())
+    ? tickersParam.split(",").map((t) => t.trim()).filter(Boolean)
     : ALL_TICKERS;
 
   const encoder = new TextEncoder();
@@ -37,24 +37,26 @@ export async function GET(request: Request) {
         // Process tickers in batches of 10 concurrently
         const BATCH_SIZE = 10;
         let scanned = 0;
-        let failed = 0;
+        let invalid = 0;
+        let errors = 0;
 
         for (let i = 0; i < tickers.length; i += BATCH_SIZE) {
           const batch = tickers.slice(i, i + BATCH_SIZE);
-          const results = await screenBatch(batch, sp500Prices, market);
+          const batchResult = await screenBatch(batch, sp500Prices, market);
 
           scanned += batch.length;
-          failed += batch.length - results.length;
+          invalid += batchResult.invalidCount;
+          errors += batchResult.errorCount;
 
           // Send each result as it comes
-          for (const result of results) {
+          for (const result of batchResult.results) {
             send("stock", result);
           }
 
-          send("progress", { scanned, total: tickers.length });
+          send("progress", { scanned, total: tickers.length, invalid });
         }
 
-        send("done", { scanned, failed, timestamp: new Date().toISOString() });
+        send("done", { scanned, invalid, errors, timestamp: new Date().toISOString() });
       } catch (error) {
         console.error("Screen error:", error);
         send("error", { message: "Failed to run screener" });
