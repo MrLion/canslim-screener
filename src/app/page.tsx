@@ -4,6 +4,7 @@ import MarketStatus from "@/components/MarketStatus";
 import StockTable from "@/components/StockTable";
 import IndustryPicker from "@/components/IndustryPicker";
 import { timeAgo } from "@/lib/scan-cache";
+import { useState } from "react";
 import { useScreener } from "@/hooks/useScreener";
 
 export default function Home() {
@@ -21,7 +22,9 @@ export default function Home() {
     handleScan,
     handleRescanAll,
     handleClearCache,
+    handleClearServerCache,
   } = useScreener();
+  const [clearingServer, setClearingServer] = useState(false);
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -116,11 +119,16 @@ export default function Home() {
               </button>
               <span className="text-gray-800">|</span>
               <button
-                onClick={() => fetch("/api/cache", { method: "DELETE" })}
-                className="text-[11px] text-gray-500 hover:text-orange-400 transition-colors"
+                onClick={async () => {
+                  setClearingServer(true);
+                  await handleClearServerCache();
+                  setClearingServer(false);
+                }}
+                disabled={clearingServer}
+                className="text-[11px] text-gray-500 hover:text-orange-400 transition-colors disabled:opacity-40"
                 title="Clears server-side quote and invalid ticker cache"
               >
-                Clear Server Cache
+                {clearingServer ? "Clearing…" : "Clear Server Cache"}
               </button>
             </div>
           </div>

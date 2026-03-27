@@ -38,6 +38,7 @@ export interface ScreenerActions {
   handleScan: (tickers: string[] | null) => void;
   handleRescanAll: () => void;
   handleClearCache: () => void;
+  handleClearServerCache: () => Promise<void>;
 }
 
 export function useScreener(): ScreenerState & ScreenerActions {
@@ -224,7 +225,15 @@ export function useScreener(): ScreenerState & ScreenerActions {
     setMarket(null);
     setTimestamp(null);
     setSkippedFresh(0);
+    setFailedCount(0);
+    setInvalidCount(0);
+    setProgress({ scanned: 0, total: 0 });
   }, [updateCacheInfo]);
+
+  const handleClearServerCache = useCallback(async () => {
+    await fetch("/api/cache", { method: "DELETE" });
+    setInvalidCount(0);
+  }, []);
 
   return {
     results,
@@ -240,5 +249,6 @@ export function useScreener(): ScreenerState & ScreenerActions {
     handleScan,
     handleRescanAll,
     handleClearCache,
+    handleClearServerCache,
   };
 }
