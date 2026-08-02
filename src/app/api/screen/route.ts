@@ -36,7 +36,7 @@ export async function GET(request: Request) {
 
         // Process tickers in batches of 10 concurrently
         const BATCH_SIZE = 10;
-        const BATCH_DELAY_MS = 200; // ~50 req/sec — avoids Yahoo Finance rate limiting
+        const BATCH_DELAY_MS = 150; // pace batches for serverless + API limits
         let scanned = 0;
         let invalid = 0;
         let errors = 0;

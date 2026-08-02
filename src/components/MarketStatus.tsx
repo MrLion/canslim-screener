@@ -33,7 +33,7 @@ export default function MarketStatus({ market }: { market: MarketDirection | nul
               M — MARKET DIRECTION: {labels[market.trend]}
             </div>
             <div className="text-xs opacity-75">
-              S&P 500: ${market.sp500Price.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+              SPY (S&P proxy): ${market.sp500Price.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               {" | "}50-day MA: ${market.ma50.toLocaleString(undefined, { maximumFractionDigits: 0 })}
               {" | "}200-day MA: ${market.ma200.toLocaleString(undefined, { maximumFractionDigits: 0 })}
             </div>

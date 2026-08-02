@@ -14,7 +14,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "CAN SLIM Screener",
-  description: "Screen stocks using William O'Neil's CAN SLIM methodology",
+  description:
+    "CAN SLIM–inspired multi-factor stock screener. Educational only — not investment advice.",
 };
 
 export default function RootLayout({

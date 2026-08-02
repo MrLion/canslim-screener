@@ -1,92 +1,89 @@
 # CAN SLIM Screener
 
-A web app that screens stocks against William O'Neil's CAN SLIM investment methodology using IBD's 197 Industry Groups classification. Results stream in live as they're computed.
+**CAN SLIM–inspired** multi-factor stock screener (William J. O’Neil). Not a full MarketSmith / IBD clone.
 
-## CAN SLIM Criteria
+Live product goal: pick IBD-style industry groups → scan → letter scores + market (M) banner → expandable detail.
 
-| Letter | Criterion | What It Measures | Pass Threshold |
-|--------|-----------|------------------|----------------|
-| **C** | Current Earnings | Quarterly EPS growth YoY | ≥ 25% |
-| **A** | Annual Earnings | Avg annual EPS growth (3yr) | ≥ 25% |
-| **N** | New Highs | Proximity to 52-week high | Within 5% |
-| **S** | Supply/Demand | Volume vs 50-day average | Above average |
-| **L** | Leader | Relative strength vs S&P 500 | RS ≥ 70 |
-| **I** | Institutional | Institutional ownership | ≥ 20% |
-| **M** | Market Direction | S&P 500 trend (50/200-day MA) | Uptrend |
+## Disclaimer
 
-## Getting Started
+**Not financial advice.** Educational / research tool only. Past patterns ≠ future results. Scores use simplified proxies and free/public market data — they are **not** pure O’Neil or official IBD RS ratings.
+
+## CAN SLIM criteria (v1 proxies)
+
+| Letter | Criterion | What we measure | Pass threshold | Data source |
+|--------|-----------|-----------------|----------------|-------------|
+| **C** | Current Earnings | Quarterly EPS YoY | ≥ 25% | Yahoo (fundamentals) |
+| **A** | Annual Earnings | Avg annual EPS growth | ≥ 25% | Yahoo |
+| **N** | New Highs | Distance from 52w high | Within 5% | **Alpaca** bars |
+| **S** | Supply/Demand | Volume vs ~3m avg | ≥ 1.0× avg | **Alpaca** |
+| **L** | Leader (RS) | 6m return vs SPY | RS score ≥ 70 | **Alpaca** |
+| **I** | Institutional | Ownership % | ≥ 20% | Yahoo |
+| **M** | Market Direction | SPY vs 50/200 MA | Uptrend | **Alpaca** (SPY) |
+
+Known purity gaps vs true CAN SLIM / IBD: no cup-with-handle, no pivot, no breakout volume surge rule, no IBD RS 1–99, no distribution/follow-through day system, no ROE in A, institutional “ownership level” not “increasing sponsorship.”
+
+## Setup
 
 ```bash
 npm install
+cp .env.example .env.local
+# fill ALPACA_API_KEY and ALPACA_SECRET_KEY (paper is fine)
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000), select IBD industry groups, and click **Scan Selected** or **Scan All**.
+Open [http://localhost:3000](http://localhost:3000).
 
-- Browse 197 IBD industry groups organized into ~40 sectors
-- Select specific groups to scan a focused subset of stocks
-- Or scan all stocks at once (takes ~2-3 minutes)
-- Results stream in progressively — you can browse while scanning continues
-- Subsequent scans are faster thanks to 4-hour in-memory caching
+### Environment variables
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `ALPACA_API_KEY` | Yes (prod) | Alpaca Key ID |
+| `ALPACA_SECRET_KEY` | Yes (prod) | Alpaca Secret |
+| `ALPACA_DATA_URL` | No | Default `https://data.alpaca.markets` |
+| `ALPACA_FEED` | No | Default `iex` (free/basic) |
+
+Without Alpaca keys, the app **falls back to Yahoo** for prices so local UI still works — production should always set Alpaca.
+
+```bash
+npm run build    # production build
+npm run lint
+npm run typecheck
+```
+
+## Deploy (Vercel)
+
+1. Import `jzoccali/canslim-screener` (or `vercel` from repo root).
+2. Set `ALPACA_API_KEY` and `ALPACA_SECRET_KEY` in Project → Settings → Environment Variables (Production + Preview).
+3. Deploy. Do not commit secrets.
 
 ## Features
 
-- **IBD 197 Industry Groups** — browse and select from IBD's official 197 industry group classification
-- **Streaming results** — stocks appear ranked as they're scored via Server-Sent Events
-- **Progress bar** — real-time scan progress (e.g., 300/517 scanned)
-- **Market direction banner** — shows current S&P 500 trend status (M criterion) with color-coded signals (green/orange/red)
-- **Sortable columns** — sort by composite score or any individual CAN SLIM criterion
-- **Filter** — search by ticker symbol or company name
-- **Expandable rows** — click any stock to see detailed score breakdowns with visual score bars
+- IBD-style industry groups picker
+- Streaming scan (SSE) with progress
+- Letter scores + composite, sortable table, expandable rows
+- Market direction banner (M)
+- Client + server caching (don’t hammer APIs)
 
-## Tech Stack
+## Tech
 
-- **Next.js 16** (App Router) + TypeScript
-- **Tailwind CSS** for styling
-- **yahoo-finance2** (v3) for free stock data (no API key required)
-- **node-cache** for in-memory caching
+- Next.js 16 (App Router) + TypeScript + Tailwind
+- **Alpaca** Market Data API for OHLCV / N S L M
+- **yahoo-finance2** for C A I fundamentals (and price fallback)
+- `node-cache` for in-process TTL cache
 
-## Project Structure
+## Project structure
 
 ```
 src/
-├── app/
-│   ├── page.tsx                       # Main screener UI (SSE consumer)
-│   ├── api/screen/route.ts            # Streaming API (SSE producer, supports ?tickers= filter)
-│   ├── api/industries/route.ts        # IBD 197 industry groups API
-│   └── api/stock/[ticker]/route.ts    # Individual stock detail API
-├── lib/
-│   ├── canslim.ts                     # CAN SLIM scoring engine
-│   ├── yahoo.ts                       # Yahoo Finance data layer + caching
-│   ├── tickers.ts                     # S&P 500 + NASDAQ 100 ticker lists
-│   └── ibd-groups.ts                  # IBD 197 industry group definitions
-└── components/
-    ├── IndustryPicker.tsx             # IBD industry group selector UI
-    ├── StockTable.tsx                 # Sortable/filterable results table
-    ├── ScoreBar.tsx                   # Visual score indicator
-    └── MarketStatus.tsx               # Market direction banner
+├── app/api/screen/          # SSE scan
+├── app/api/industries/      # IBD groups
+├── app/api/stock/[ticker]/ # single ticker
+├── lib/alpaca.ts            # Alpaca market data
+├── lib/yahoo.ts             # facade: Alpaca primary + Yahoo fundamentals
+├── lib/canslim.ts           # letter scoring
+└── components/              # UI
 ```
 
-## How Scoring Works
+## License
 
-Each stock is evaluated against 6 criteria (C, A, N, S, L, I) plus the market direction (M). Each criterion produces a score from 0-100 and a pass/fail result. The composite score is a weighted average:
-
-| Criterion | Weight |
-|-----------|--------|
-| C (Current Earnings) | 20% |
-| A (Annual Growth) | 20% |
-| L (Leader/RS) | 20% |
-| N (New Highs) | 15% |
-| S (Supply/Demand) | 10% |
-| I (Institutional) | 10% |
-| M (Market Direction) | 5% |
-
-## Data Source
-
-All data comes from Yahoo Finance via the `yahoo-finance2` npm package. No API key is required. Industry classification uses IBD's 197 Industry Groups from MarketSurge. The stock universe includes S&P 500 constituents plus select NASDAQ 100 names (~500 tickers total).
-
-## Notes
-
-- The **C** (Current Earnings) criterion may show "N/A" for some stocks due to limited quarterly earnings data availability from Yahoo Finance
-- Data is cached in-memory for 4 hours to avoid excessive API calls
-- This tool is for educational/research purposes and does not constitute investment advice
+See `LICENSE`. Forked from [MrLion/canslim-screener](https://github.com/MrLion/canslim-screener).

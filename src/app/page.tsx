@@ -36,7 +36,7 @@ export default function Home() {
               CAN SLIM Screener
             </h1>
             <p className="text-sm text-gray-500 mt-1">
-              Stocks ranked by William O&apos;Neil&apos;s CAN SLIM methodology
+              CAN SLIM–inspired multi-factor screener (not a full MarketSmith clone)
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -153,6 +153,14 @@ export default function Home() {
 
         {/* Results */}
         {results.length > 0 && <StockTable results={results} />}
+
+        {/* Disclaimer */}
+        <p className="mt-8 text-[11px] text-gray-600 leading-relaxed max-w-3xl">
+          Not financial advice. Educational screener only. Past patterns do not guarantee
+          future results. Letter scores use simplified proxies (Alpaca market data for
+          price/volume/RS; Yahoo for fundamentals where available) and are not pure O&apos;Neil
+          / IBD MarketSmith scores.
+        </p>
 
         {/* Legend */}
         {results.length > 0 && (

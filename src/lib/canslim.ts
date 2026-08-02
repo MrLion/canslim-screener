@@ -209,7 +209,7 @@ function scoreM(market: MarketDirection): CriterionResult {
     pass,
     score,
     value: market.trend.charAt(0).toUpperCase() + market.trend.slice(1),
-    detail: `S&P 500: $${market.sp500Price.toFixed(0)} | 50-MA: $${market.ma50.toFixed(0)} | 200-MA: $${market.ma200.toFixed(0)}`,
+    detail: `SPY (S&P 500 proxy): $${market.sp500Price.toFixed(0)} | 50-MA: $${market.ma50.toFixed(0)} | 200-MA: $${market.ma200.toFixed(0)}`,
   };
 }
 
